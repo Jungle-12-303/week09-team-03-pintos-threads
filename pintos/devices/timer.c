@@ -144,7 +144,11 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 	// 제작중
 	struct list_elem* le = list_front(&time_list);
 	struct thread* t = list_entry(le, struct thread, elem);
-	if(t->thread_tick > timer_elapsed(ticks)) {
+
+	// 순회를 해야됨 -> sorted_list로 가자
+	
+	while (ticks >= t->thread_tick) {  // 전역시간 >= 일어나야할 시간 
+		list_pop_front(&time_list);
 		thread_unblock(t);
 	};
 
