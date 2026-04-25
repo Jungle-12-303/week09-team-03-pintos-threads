@@ -29,6 +29,13 @@ static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 
+// SONNY'S CODE
+extern struct list time_list;
+
+// SONNY'S CODE
+
+
+
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
    corresponding interrupt. */
@@ -93,8 +100,14 @@ timer_sleep (int64_t ticks) {
 	int64_t start = timer_ticks ();
 
 	ASSERT (intr_get_level () == INTR_ON);
-	while (timer_elapsed (start) < ticks)
-		thread_yield ();
+	// while (timer_elapsed (start) < ticks)
+	// 	thread_yield ();
+
+
+	// SONNY'S CODE
+	list_push_back(&time_list, thread_current()->thread_tick = ticks);
+	thread_block();
+	thread_yield();
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -120,13 +133,21 @@ void
 timer_print_stats (void) {
 	printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
-
+
 /* Timer interrupt handler. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+	
+	//SONNY'S CODE
+	// 제작중
+	igit f(list_entry() list_pop_front(&time_list))
+
+
 }
+
+
 
 /* Returns true if LOOPS iterations waits for more than one timer
    tick, otherwise false. */

@@ -92,6 +92,12 @@ struct thread {
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
 
+	// SONNY'S CODE
+	// 일어나야 할 시간
+	int64_t thread_tick;
+	
+	// SONNY'S CODE
+
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 
