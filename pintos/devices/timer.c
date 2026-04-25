@@ -30,7 +30,7 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 
 // SONNY'S CODE
-extern struct list time_list;
+static struct list sleep_list;
 
 // SONNY'S CODE
 
@@ -105,9 +105,15 @@ timer_sleep (int64_t ticks) {
 
 
 	// SONNY'S CODE
-	list_push_back(&time_list, thread_current()->thread_tick = ticks);
+	enum intr_level old_level;
+
+
+	old_level = intr_disable(); 
+	list_insert_ordered(&sleep_list, thread_current()->thread_tick = start + ticks, list_less_func, NULL);
 	thread_block();
-	thread_yield();
+	intr_set_level(old_level); //원래상태로 복귀
+	printf("블락 이후");
+
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -138,17 +144,20 @@ timer_print_stats (void) {
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
-	thread_tick ();
-	
+
 	//SONNY'S CODE
-	// 제작중
-	struct list_elem* le = list_front(&time_list);
+	// 제작중 
+	struct list_elem* le = list_front(&sleep_list);
 	struct thread* t = list_entry(le, struct thread, elem);
-	if(t->thread_tick > timer_elapsed(ticks)) {
+
+	// 순회를 해야됨 -> sorted_list로 가자
+	if(ticks >= t->thread_tick) {
+		list_pop_front(&sleep_list);
 		thread_unblock(t);
 	};
 
 
+	thread_tick ();
 }
 
 
