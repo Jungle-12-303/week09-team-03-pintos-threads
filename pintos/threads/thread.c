@@ -26,14 +26,29 @@
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
+/* 
+THREAD_READY 상태의 프로세스 목록, 즉 실행 준비는 되었으나 실제로는 실행 중이 아닌 프로세스들. 
+실행 준비가 되어(Unblock) CPU를 할당 받기 위해 순서를 기다리거 있는 일반적인 스레드(프로세스)들이 대기하는 리스트
+-> 한정된 자원을 두고 경쟁하는 상대
+*/
 static struct list ready_list;
 
 // SONNY'S CODE
 static struct list time_list;
 
 // SONNY'S CODE
+/* timer_sleep 호출로 blocked 스레드를 넣을 리스트 */
+static struct list sleep_list;
 
 /* Idle thread. */
+/*
+ready_list에 실행한 준비가 된 스레드가 단 하낟고 없을 때(시스템에 당장 실행할 작업이 없을 때)
+스케줄러에 의해 선택되어 실행되는 특수한 스레드
+-> CPU가 아무 작업도 하지 않고 멈추는 것을 방지하기 위해 빈 시간을 채워주는 역할
+
+CPU가 놀고 있다고 Blocked 스레드를 실행하는 것은 X
+-> 운영체제가 시스템을 구동하면서 CPU가 놀게 될 때를 대비하여 자체적으로 미리 만들어두는 특수한 목적의 empty 스레드
+*/
 static struct thread *idle_thread;
 
 /* Initial thread, the thread running init.c:main(). */
@@ -43,6 +58,7 @@ static struct thread *initial_thread;
 static struct lock tid_lock;
 
 /* Thread destruction requests */
+// Proejct1에서 쓰이지 않는 리스트
 static struct list destruction_req;
 
 /* Statistics. */
@@ -113,12 +129,14 @@ thread_init (void) {
 	/* Init the globla thread context */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
+	// sleep_list 초기화 
+	list_init (&sleep_list);
 	list_init (&destruction_req);
 
 	// SONNY'S CODE
 	
 	// time_list 초기화
-	list_init(&time_list);
+	list_init (&time_list);
 
 	// SONNY'S CODE
 
@@ -537,6 +555,10 @@ thread_launch (struct thread *th) {
  * This function modify current thread's status to status and then
  * finds another thread to run and switches to it.
  * It's not safe to call printf() in the schedule(). */
+/* 새로운 프로세스를 스케줄링합니다. 진입 시 인터럽트는 비활성화되어 있어야 합니다.
+ * 이 함수는 현재 스레드의 상태를 status로 변경한 다음,
+ * 실행할 다른 스레드를 찾아 해당 스레드로 전환합니다.
+ * schedule() 내에서 printf()를 호출하는 것은 안전하지 않습니다. */
 static void
 do_schedule(int status) {
 	ASSERT (intr_get_level () == INTR_OFF);
