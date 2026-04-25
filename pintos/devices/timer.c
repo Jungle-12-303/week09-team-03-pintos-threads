@@ -142,7 +142,11 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 	
 	//SONNY'S CODE
 	// 제작중
-	igit f(list_entry() list_pop_front(&time_list))
+	struct list_elem* le = list_front(&time_list);
+	struct thread* t = list_entry(le, struct thread, elem);
+	if(t->thread_tick > timer_elapsed(ticks)) {
+		thread_unblock(t);
+	};
 
 
 }
