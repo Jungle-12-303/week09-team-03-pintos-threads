@@ -1,4 +1,5 @@
 #include "devices/timer.h"
+#include "lib/kernel/list.h"
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
@@ -28,13 +29,6 @@ static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
-
-// SONNY'S CODE
-static struct list sleep_list;
-
-// SONNY'S CODE
-
-
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
@@ -100,20 +94,13 @@ timer_sleep (int64_t ticks) {
 	int64_t start = timer_ticks ();
 
 	ASSERT (intr_get_level () == INTR_ON);
-	// while (timer_elapsed (start) < ticks)
-	// 	thread_yield ();
 
+	// 현재 스레드의 tick(절대 시간) 계산하여 넣음 -> 초기화 
+	thread_current()->thread_tick = start + ticks;
 
-	// SONNY'S CODE
-	enum intr_level old_level;
-
-
-	old_level = intr_disable(); 
-	list_insert_ordered(&sleep_list, thread_current()->thread_tick = start + ticks, list_less_func, NULL);
-	thread_block();
-	intr_set_level(old_level); //원래상태로 복귀
-	printf("블락 이후");
-
+	// 기존 코드 = busy  wait 형식, 이걸 버려야 한다 
+	while (timer_elapsed (start) < ticks)
+		thread_yield ();
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -141,22 +128,17 @@ timer_print_stats (void) {
 }
 
 /* Timer interrupt handler. */
+// sleep_list에 있는 잠든 스레드들 중 목표 tick이 지난 스레드를 깨우는 함수
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 
-	//SONNY'S CODE
-	// 제작중 
-	struct list_elem* le = list_front(&sleep_list);
-	struct thread* t = list_entry(le, struct thread, elem);
-
-	// 순회를 해야됨 -> sorted_list로 가자
-	if(ticks >= t->thread_tick) {
-		list_pop_front(&sleep_list);
-		thread_unblock(t);
-	};
-
-
+	// 스레드 하나가 timer.c를 하나씩 가지고 실행하는가?
+	if(timer_ticks () <= thread_current()->thread_tick)
+	{
+		thread_wakeUp();
+	}
+	
 	thread_tick ();
 }
 
