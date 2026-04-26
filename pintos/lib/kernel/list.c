@@ -415,6 +415,8 @@ list_sort (struct list *list, list_less_func *less, void *aux) {
 /* Inserts ELEM in the proper position in LIST, which must be
    sorted according to LESS given auxiliary data AUX.
    Runs in O(n) average case in the number of elements in LIST. */
+   /* LIST의 적절한 위치에 ELEM을 삽입합니다. 이때 LIST는 보조 데이터 AUX를 사용하여 LESS에 따라 정렬되어 있어야 합니다.
+   LIST의 요소 수에 따라 평균 O(n) 시간 복잡도를 가집니다. */
 void
 list_insert_ordered (struct list *list, struct list_elem *elem,
 		list_less_func *less, void *aux) {
@@ -488,7 +490,7 @@ list_min (struct list *list, list_less_func *less, void *aux) {
 	return min;
 }
 
-
-typedef bool list_less_func (const struct list_elem *a, const struct list_elem *b, void *aux) {
-	return a.thread_tick > b;
-}
+// typedef 함수 포인터
+// 얘 자리에 들어가서 동작하게 하는 걸 만들어야 함
+// 얘를 정의하는게 아님!!!!!!
+typedef bool list_less_func (const struct list_elem *a, const struct list_elem *b, void *aux);
