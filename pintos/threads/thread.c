@@ -29,7 +29,7 @@
 static struct list ready_list;
 
 // SONNY'S CODE
-static struct list time_list;
+struct list time_list;
 
 // SONNY'S CODE
 
