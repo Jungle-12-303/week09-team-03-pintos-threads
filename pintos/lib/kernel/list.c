@@ -487,3 +487,8 @@ list_min (struct list *list, list_less_func *less, void *aux) {
 	}
 	return min;
 }
+
+
+typedef bool list_less_func (const struct list_elem *a, const struct list_elem *b, void *aux) {
+	return a.thread_tick > b;
+}
