@@ -2,6 +2,7 @@
    duration, M times.  Records the wake-up order and verifies
    that it is valid. */
 
+//네 커널이 실제로 오름차순으로 깨우는지 확인하는 테스트
 #include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
@@ -23,7 +24,7 @@ test_alarm_multiple (void)
 {
   test_sleep (5, 7);
 }
-
+
 /* Information about the test. */
 struct sleep_test 
   {

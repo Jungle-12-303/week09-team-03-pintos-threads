@@ -144,21 +144,23 @@ timer_print_stats (void) {
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
-
+	
 	//SONNY'S CODE
-	// 제작중 
-	struct list_elem* le = list_front(&sleep_list);
-	struct thread* t = list_entry(le, struct thread, elem);
+	// 제작중
+	struct list_elem* le = list_front(&time_list);
+	struct thread* t = list_entry(le, struct thread, elem); 
 
 	// 순회를 해야됨 -> sorted_list로 가자
-	if(ticks >= t->thread_tick) {
-		list_pop_front(&sleep_list);
+	
+	while (ticks >= t->thread_tick) {  // 전역시간 >= 그 스레드가 일어나야할 시간 hoseok 
+		list_pop_front(&time_list);
 		thread_unblock(t);
 	};
 
-
-	thread_tick ();
+	thread_tick (); //다음 스레드에게 넘겨줘라고 예약?
 }
+
+
 
 
 
