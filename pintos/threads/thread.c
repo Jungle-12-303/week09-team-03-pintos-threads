@@ -80,6 +80,14 @@ static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
 
+// SONNY
+static bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
+static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
+// SONNY
+
+
+
+
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
 
@@ -259,7 +267,11 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+
+	// SONNY
+	list_insert_ordered (&ready_list, &t->elem, compare_priority, NULL);
+	// SONNY
+
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -325,7 +337,7 @@ thread_yield (void) {
 	ASSERT (!intr_context ());
 
 	// 인터럽트 비활성화
-	printf("인터럽트 비활성화\n");
+	// printf("인터럽트 비활성화\n");
 	old_level = intr_disable ();
 	
 	// 현재 스레드가 idle_thread가 아니라면
@@ -339,7 +351,7 @@ thread_yield (void) {
 	schedule();
 
 	// 스케줄링으로 실행 재개 될 때 인터럽트 활성화 
-	printf("인터럽트 활성화\n");
+	// printf("인터럽트 활성화\n");
 	intr_set_level (old_level);
 }
 
@@ -351,10 +363,19 @@ static bool compare (const struct list_elem *a, const struct list_elem *b, void 
 	return thread_a->thread_tick < thread_b->thread_tick;
 }
 
+
+static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
+{
+	struct thread *thread_a = list_entry(a, struct thread, elem);
+	struct thread *thread_b = list_entry(b, struct thread, elem);
+
+	return thread_a->priority > thread_b->priority;
+}
+
 void
 thread_sleep()
 {
-	printf("thread_sleep 진입\n");
+	// printf("thread_sleep 진입\n");
 
 	// 인터럽트 상태 저장을 위한 변수
 	enum intr_level old_level;
@@ -362,7 +383,7 @@ thread_sleep()
 	ASSERT (!intr_context ());
 
 	// 인터럽트 비활성화 
-	printf("인터럽트 비활성화\n");
+	// printf("인터럽트 비활성화\n");
 	old_level = intr_disable ();
 
 	// aux: auxiliary data, 비교 함수에 넘겨주는 옵션 데이터 포인터  
@@ -372,7 +393,7 @@ thread_sleep()
 	thread_block();
 
 	// 스케줄링으로 실행 재개 될 때 인터럽트 활성화 
-	printf("인터럽트 활성화\n");
+	// printf("인터럽트 활성화\n");
 	intr_set_level (old_level);
 }
 
