@@ -318,6 +318,43 @@ thread_exit (void) {
 void
 thread_yield (void) {
 	struct thread *curr = thread_current ();
+	
+	// 인터럽트 상태 저장을 위한 변수
+	enum intr_level old_level;
+
+	ASSERT (!intr_context ());
+
+	// 인터럽트 비활성화
+	printf("인터럽트 비활성화\n");
+	old_level = intr_disable ();
+	
+	// 현재 스레드가 idle_thread가 아니라면
+	if (curr != idle_thread)
+		list_push_back (&ready_list, &curr->elem);
+
+	// do_schedule 쓰지 않고 현재 스레드 상태를 바로 준비 상태로 변경
+	curr->status = THREAD_READY; 
+	//do_schedule (THREAD_READY);
+	
+	schedule();
+
+	// 스케줄링으로 실행 재개 될 때 인터럽트 활성화 
+	printf("인터럽트 활성화\n");
+	intr_set_level (old_level);
+}
+
+static bool compare (const struct list_elem *a, const struct list_elem *b, void *aux) 
+{
+	struct thread *thread_a = list_entry(a, struct thread, elem);
+	struct thread *thread_b = list_entry(b, struct thread, elem);
+
+	return thread_a->thread_tick < thread_b->thread_tick;
+}
+
+void
+thread_sleep()
+{
+	printf("thread_sleep 진입\n");
 
 	// 인터럽트 상태 저장을 위한 변수
 	enum intr_level old_level;
@@ -328,10 +365,11 @@ thread_yield (void) {
 	printf("인터럽트 비활성화\n");
 	old_level = intr_disable ();
 
-	// 현재 스레드가 idle_thread가 아니라면
-	if (curr != idle_thread)
-		thread_sleep();
-		//list_push_back (&ready_list, &curr->elem);
+	// aux: auxiliary data, 비교 함수에 넘겨주는 옵션 데이터 포인터  
+	// -> 선택적 보조 인자, NULL 넣어주면 됨 
+	list_insert_ordered(&sleep_list, &thread_current()->elem, compare, NULL);
+
+	thread_block();
 
 	// 스케줄링으로 실행 재개 될 때 인터럽트 활성화 
 	printf("인터럽트 활성화\n");
@@ -339,44 +377,31 @@ thread_yield (void) {
 }
 
 void
-thread_sleep()
-{
-	printf("thread_sleep 진입\n");
-
-	// 현재 스레드를 sleep_list에 넣음
-	//list_push_back(&sleep_list, &thread_current()->elem);
-	list_push_back(&sleep_list, &thread_current()->elem);
-	//list_insert_ordered(&sleep_list, &thread_current()->elem, ? , ㅁaux)
-	// TODO:
-	// list_pop_front 사용하기 위해 sleep_list는 tick을 기준으로 오름차순 정렬되어 있어야 함
-
-	// 스레드 상태를 blocked로 변경 
-	//printf("인터럽트 비활성화");
-	
-	printf("스레드 상태를 THREAD_BLOCKED 로 변경\n");
-	do_schedule (THREAD_BLOCKED);
-}
-
-void
 thread_wakeUp(int64_t ticks)
 {
-	printf("thread_wakeUp 진입\n");
-
-	//struct list_elem wakeUp_elem; 
-	// 반환 값을 변수에 저장해서 list_puush_back으로 넘겨줘야 함
-	//wakeUp_elem = *list_pop_front(&sleep_list);
+	// timer_interrupt 안에서 호출되는 함수라 printf 빼는 게 좋음 
+	//printf("thread_wakeUp 진입\n");
 	
-	// sleep_list에서 스레드 pop
-	// -> 깨운 스레드를 찾아야 함
-	// -> list_entry로 역산 필요
-	struct thread *wakeUp_thread = list_entry(list_pop_front(&sleep_list), struct thread, elem);
-
-	// 현재 실행 중인 스레드 상태를 ready로 변경 
-	// -> 이걸 쓰는 게 아님
-	// do_schedule (THREAD_READY);
-
-	// 현재 스레드가 아닌 잠들어있는 걸 깨운 스레드를 넣어야 함
-	list_push_back(&ready_list, &wakeUp_thread->elem);
+	while(!list_empty(&sleep_list))
+	{
+		// sleep_list에서 맨 앞 요소(스레드)를 확인
+		struct thread *sleep_thread = list_entry(list_front(&sleep_list), struct thread, elem);
+	
+		// 맨 앞 스레드의 절대 시간 tick이 현재 tick 이하라면 깨워야 함 = pop
+		if(sleep_thread->thread_tick <= ticks)
+		{
+			list_pop_front(&sleep_list);
+			
+			// 이미 위에서 맨 앞 요소를 sleep_thread로 넣어줬기 때문에 조건 만족하면 바로 sleep_thread unblock
+			// thread_unblock 안에서 sleep_thread를 ready_list 에 넣어줌 
+			thread_unblock(sleep_thread);
+		}
+		// 맨 앞 스레드의 절대 시간 tick이 현재 tick 이상이라면(깨울 때가 아니라면) 중단
+		else
+		{
+			break;
+		}
+	}
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */

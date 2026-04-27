@@ -30,7 +30,8 @@
    without sacrificing this simplicity.  But using two separate
    elements allows us to do a little bit of checking on some
    operations, which can be valuable.) */
-
+ 
+   // UNUSED: 정의만 있고 선언 또는 사용되지 않은 함수/변수에 대한 오류가 뜨지 않도록 처리하는 매크로 
 static bool is_sorted (struct list_elem *a, struct list_elem *b,
 		list_less_func *less, void *aux) UNUSED;
 
@@ -320,6 +321,9 @@ list_reverse (struct list *list) {
 
 /* Returns true only if the list elements A through B (exclusive)
    are in order according to LESS given auxiliary data AUX. */
+/* 보조 데이터 AUX가 주어졌을 때, 목록의 A번 요소부터 B번 요소(B번 요소는 제외)까지가
+   LESS에 따라 정렬되어 있는 경우에만 true를 반환합니다. */
+   // 리스트 전체가 정렬되어 있는지 검사하는 함수 
 static bool
 is_sorted (struct list_elem *a, struct list_elem *b,
 		list_less_func *less, void *aux) {

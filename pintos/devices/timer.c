@@ -98,9 +98,12 @@ timer_sleep (int64_t ticks) {
 	// 현재 스레드의 tick(절대 시간) 계산하여 넣음 -> 초기화 
 	thread_current()->thread_tick = start + ticks;
 
+	// 내가 구현한 thread_sleep 함수 호출 
+	thread_sleep();
+
 	// 기존 코드 = busy  wait 형식, 이걸 버려야 한다 
-	while (timer_elapsed (start) < ticks)
-		thread_yield ();
+	// 	while (timer_elapsed (start) < ticks)
+	// 		thread_yield ();
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -133,12 +136,13 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 
-	// 스레드 하나가 timer.c를 하나씩 가지고 실행하는가?
-	if(timer_ticks () <= thread_current()->thread_tick)
-	{
-		thread_wakeUp();
-	}
-	
+	thread_wakeUp(ticks);
+	// // 스레드 하나가 timer.c를 하나씩 가지고 실행하는가?
+	// if(timer_ticks () <= thread_current()->thread_tick)
+	// {
+	// 	thread_wakeUp();
+	// }
+
 	thread_tick ();
 }
 
