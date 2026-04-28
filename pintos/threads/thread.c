@@ -447,22 +447,32 @@ thread_wakeUp(int64_t ticks)
 // 우선순위가 변경되었을 때 sort해주기 list_front랑 priority 비교
 void
 thread_set_priority (int new_priority) {
-
-	// thread_current ()->priority = new_priority; 원본 코드
-	// SONNY'S CODE
+	
+	// 현재 스레드의 priority를 변경 
 	struct thread *curr_t = thread_current();
-	curr_t->priority = new_priority;
-
+  	curr_t->priority = new_priority;	
+	
+	// ready 리스트 확인하기 전 intr 비활성화
 	intr_disable();
-	if(!list_empty(&ready_list)) {
+	
+	if(!list_empty(&ready_list))
+	{
+		// ready_list에 있는 첫 스레드
 		struct thread *next_t = list_entry(list_front(&ready_list), struct thread, elem);
-		if(curr_t->priority < next_t->priority) {
+	
+		if(curr_t->priority < next_t->priority)
+		{
+			// priority 확인 후 intr 활성화
 			intr_enable();
+			
+			// yield() 안에서 intr 비활성화, ready에 넣음, ready 상태로 변경, 스케줄 실행, intr 활성화 진행
 			thread_yield();
 		}
 	}
-	
-	// SONNY'S CODE
+	else
+	{
+		intr_enable();
+	}
 }
 
 /* Returns the current thread's priority. */
