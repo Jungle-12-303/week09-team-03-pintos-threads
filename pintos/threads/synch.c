@@ -76,23 +76,26 @@ sema_down (struct semaphore *sema) {
 		thread_block ();
 	}
 
-	// 자원을 대기 중인 스레드가 있다면
-	if(!list_empty(&sema->waiters))
-	{
-		struct thread *next_t = list_entry(list_front(&sema->waiters), struct thread, elem);
+	// --- priority-donate-one 구현 시도
+	// // 자원을 대기 중인 스레드가 있다면
+	// if(!list_empty(&sema->waiters))
+	// {
+	// 	struct thread *next_t = list_entry(list_front(&sema->waiters), struct thread, elem);
 
-		// 현재 CPU를 할당 받은 스레드의 priority와 자원 대기 중인 스레드 중 priority 가장 높은 스레드의 priority와 비교
-		// 현재 스레드보다 대기 중인 스레드의 priority가 더 크다면
-		if(&curr_t->priority < &next_t->priority)
-		{
-			int old_priority = thread_get_priority(); 
+	// 	// 현재 CPU를 할당 받은 스레드의 priority와 자원 대기 중인 스레드 중 priority 가장 높은 스레드의 priority와 비교
+	// 	// 현재 스레드보다 대기 중인 스레드의 priority가 더 크다면
+	// 	if(&curr_t->priority < &next_t->priority)
+	// 	{
+	// 		int old_priority = thread_get_priority(); 
 
-			int new_priority = &next_t->priority;
+	// 		int new_priority = &next_t->priority;
 
-			// curr_t의 priority를 new_priority로 변경 
-			thread_set_priority(new_priority);
-		}
-	}
+	// 		// curr_t의 priority를 new_priority로 변경 
+	// 		thread_set_priority(new_priority);
+	// 	}
+	// }
+	// --- 
+	
 	sema->value--;
 	// 어디서 우선순위를 돌려줘야하는거지? 
 	intr_set_level (old_level);
