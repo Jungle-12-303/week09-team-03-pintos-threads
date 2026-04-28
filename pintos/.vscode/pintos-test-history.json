@@ -6,13 +6,13 @@
       "last_action": "run"
     },
     "tests/threads/alarm-single": {
-      "count": 5,
-      "last_used": 1777341860.781,
+      "count": 6,
+      "last_used": 1777374319.193,
       "last_action": "run"
     },
     "tests/threads/alarm-simultaneous": {
-      "count": 4,
-      "last_used": 1777341897.231,
+      "count": 5,
+      "last_used": 1777374319.193,
       "last_action": "run"
     },
     "tests/threads/alarm-priority": {
@@ -21,18 +21,18 @@
       "last_action": "run"
     },
     "tests/threads/alarm-zero": {
-      "count": 3,
-      "last_used": 1777341379.793,
+      "count": 4,
+      "last_used": 1777374319.193,
       "last_action": "run"
     },
     "tests/threads/alarm-negative": {
-      "count": 2,
-      "last_used": 1777341379.793,
+      "count": 3,
+      "last_used": 1777374319.193,
       "last_action": "run"
     },
     "tests/threads/priority-change": {
-      "count": 126,
-      "last_used": 1777372795.645,
+      "count": 128,
+      "last_used": 1777374254.391,
       "last_action": "run"
     },
     "tests/threads/priority-donate-one": {
@@ -66,13 +66,13 @@
       "last_action": "run"
     },
     "tests/threads/priority-fifo": {
-      "count": 1,
-      "last_used": 1777341379.793,
+      "count": 2,
+      "last_used": 1777374319.193,
       "last_action": "run"
     },
     "tests/threads/priority-preempt": {
-      "count": 1,
-      "last_used": 1777341379.793,
+      "count": 2,
+      "last_used": 1777374319.193,
       "last_action": "run"
     },
     "tests/threads/priority-sema": {

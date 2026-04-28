@@ -206,24 +206,24 @@ thread_print_stats (void) {
 tid_t
 thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
-	struct thread *t;
-	tid_t tid;
+	struct thread *t; // 새로 만들어질 스레드의 포인터
+	tid_t tid; // 새로 만들어질 스레드의 ID
 
 	ASSERT (function != NULL);
 
 	/* Allocate thread. */
-	t = palloc_get_page (PAL_ZERO);
+	t = palloc_get_page (PAL_ZERO); 
 	if (t == NULL)
 		return TID_ERROR;
 
 	/* Initialize thread. */
 	init_thread (t, name, priority);
-	tid = t->tid = allocate_tid ();
+	tid = t->tid = allocate_tid (); 
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;
-	t->tf.R.rdi = (uint64_t) function;
+	t->tf.R.rdi = (uint64_t) function; // kernel_thread의 첫 번째 인자 function을 rdi에 넣어줌 실행 아님
 	t->tf.R.rsi = (uint64_t) aux;
 	t->tf.ds = SEL_KDSEG;
 	t->tf.es = SEL_KDSEG;
@@ -232,9 +232,14 @@ thread_create (const char *name, int priority,
 	t->tf.eflags = FLAG_IF;
 
 	/* Add to run queue. */
-	thread_unblock (t);
+	thread_unblock (t); 
+
+	//NICK - thread_unblock(t) 안에서 ready_list에 우선순위에 맞게 넣어주기 때문에 thread_create에서는 따로 우선순위 비교해서 넣어줄 필요 X
+	if(t -> priority > thread_current() -> priority) //t는 새로 만들어진 스레드, thread_current()는 현재 실행 중인 스레드
+		thread_yield(); //새 스레드가 우선순위가 높다면 thred_yield*()를 호출해서 현재 스레드가 cpu에서 양보하도록 함
 
 	return tid;
+	//NICK 
 }
 
 /* Puts the current thread to sleep.  It will not be scheduled
@@ -272,8 +277,8 @@ thread_unblock (struct thread *t) {
 	list_insert_ordered (&ready_list, &t->elem, compare_priority, NULL);
 	// SONNY
 
-	t->status = THREAD_READY;
-	intr_set_level (old_level);
+	t->status = THREAD_READY; //
+	intr_set_level (old_level); 
 }
 
 /* Returns the name of the running thread. */
@@ -341,8 +346,17 @@ thread_yield (void) {
 	old_level = intr_disable ();
 	
 	// 현재 스레드가 idle_thread가 아니라면
-	if (curr != idle_thread)
-		list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
+	// if (curr != idle_thread)
+	// 	list_push_back (&ready_list, &curr->elem);
+	
+	
+	// NICK - ready_list에 현재 스레드를 우선순위에 맞게 넣어주기 
+	//&ready_list는 cpu에 할당받기 위해 준비된 스레드들이 대기하는 리스트이므로 우선순위에 맞게 큐에 
+	//&curr->elem는 현재 스레드의 list_elem 구조체로, ready_list에 삽입될 때 사용됨
+	//compare_priority는 우선순위 비교 함수, NULL은 보조 인자(사용하지 않으므로 NULL)
+
+	list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
+	// NICK
 
 	// do_schedule 쓰지 않고 현재 스레드 상태를 바로 준비 상태로 변경
 	curr->status = THREAD_READY; 
@@ -369,7 +383,8 @@ static bool compare_priority (const struct list_elem *a, const struct list_elem 
 	struct thread *thread_a = list_entry(a, struct thread, elem);
 	struct thread *thread_b = list_entry(b, struct thread, elem);
 
-	return thread_a->priority > thread_b->priority;
+	return thread_a->priority > thread_b->priority; 
+	// 큰 숫자가 앞으로 오는 compare함수, ready_list는 우선순위가 높은 순서대로 정렬되어야 하기 때문에
 }
 
 void
