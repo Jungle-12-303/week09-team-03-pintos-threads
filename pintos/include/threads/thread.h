@@ -137,6 +137,10 @@ const char *thread_name (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 
+// synch.c에서 사용 가능하도록 옮김
+static bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
+
 void thread_sleep();
 void thread_wakeUp();
 

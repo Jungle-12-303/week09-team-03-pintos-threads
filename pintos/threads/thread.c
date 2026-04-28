@@ -80,13 +80,9 @@ static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
 
-// SONNY
-static bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
-static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
-// SONNY
-
-
-
+// synch.c에서 사용 가능하도록 thread.h로 옮김
+// static bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
+// bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -377,7 +373,7 @@ static bool compare (const struct list_elem *a, const struct list_elem *b, void 
 }
 
 
-static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
 {
 	struct thread *thread_a = list_entry(a, struct thread, elem);
 	struct thread *thread_b = list_entry(b, struct thread, elem);

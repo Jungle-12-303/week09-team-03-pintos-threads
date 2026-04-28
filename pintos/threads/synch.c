@@ -64,12 +64,37 @@ sema_down (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 	ASSERT (!intr_context ());
 
+	struct thread *curr_t = thread_current();
+
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		list_push_back (&sema->waiters, &thread_current ()->elem);
+		// list_push_back (&sema->waiters, &thread_current ()->elem);
+
+		// priority 순으로 waiters에 넣어야 함
+		list_insert_ordered(&sema->waiters, &curr_t->elem, compare_priority, NULL);
+
 		thread_block ();
 	}
+
+	// 자원을 대기 중인 스레드가 있다면
+	if(!list_empty(&sema->waiters))
+	{
+		struct thread *next_t = list_entry(list_front(&sema->waiters), struct thread, elem);
+
+		// 현재 CPU를 할당 받은 스레드의 priority와 자원 대기 중인 스레드 중 priority 가장 높은 스레드의 priority와 비교
+		// 현재 스레드보다 대기 중인 스레드의 priority가 더 크다면
+		if(&curr_t->priority < &next_t->priority)
+		{
+			int old_priority = thread_get_priority(); 
+
+			int new_priority = &next_t->priority;
+
+			// curr_t의 priority를 new_priority로 변경 
+			thread_set_priority(new_priority);
+		}
+	}
 	sema->value--;
+	// 어디서 우선순위를 돌려줘야하는거지? 
 	intr_set_level (old_level);
 }
 
@@ -102,6 +127,9 @@ sema_try_down (struct semaphore *sema) {
    and wakes up one thread of those waiting for SEMA, if any.
 
    This function may be called from an interrupt handler. */
+   /* 세마포어에 대한 증가(Up) 또는 "V" 연산. SEMA의 값을 증가시키고,
+   SEMA를 대기 중인 스레드가 있다면 그중 하나를 깨웁니다.
+   이 함수는 인터럽트 핸들러 내에서 호출될 수 있습니다. */
 void
 sema_up (struct semaphore *sema) {
 	enum intr_level old_level;
@@ -229,6 +257,9 @@ lock_release (struct lock *lock) {
 /* Returns true if the current thread holds LOCK, false
    otherwise.  (Note that testing whether some other thread holds
    a lock would be racy.) */
+   /* 현재 스레드가 LOCK을 보유하고 있으면 true를 반환하고, 
+   그렇지 않으면 false를 반환합니다. (다른 스레드가 잠금을 보유하고 있는지 
+   확인하는 것은 경합 상황이 발생할 수 있음을 유의하십시오.) */
 bool
 lock_held_by_current_thread (const struct lock *lock) {
 	ASSERT (lock != NULL);
