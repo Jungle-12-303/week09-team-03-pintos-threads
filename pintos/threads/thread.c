@@ -346,7 +346,7 @@ thread_yield (void) {
 
 	// do_schedule 쓰지 않고 현재 스레드 상태를 바로 준비 상태로 변경
 	curr->status = THREAD_READY; 
-	//do_schedule (THREAD_READY);
+	// do_schedule (THREAD_READY);
 	
 	schedule();
 
@@ -437,16 +437,16 @@ thread_set_priority (int new_priority) {
 	// SONNY'S CODE
 	struct thread *curr_t = thread_current();
 	curr_t->priority = new_priority;
-	if(curr_t->status == THREAD_RUNNING){
 
-		if(!list_empty(&ready_list)) {
-			struct thread *next_t = list_entry(list_front(&ready_list), struct thread, elem);
-			if(next_t->priority > curr_t->priority) {
-				thread_yield();
-			}
+	intr_disable();
+	if(!list_empty(&ready_list)) {
+		struct thread *next_t = list_entry(list_front(&ready_list), struct thread, elem);
+		if(curr_t->priority < next_t->priority) {
+			intr_enable();
+			thread_yield();
 		}
 	}
-		
+	
 	// SONNY'S CODE
 }
 
