@@ -92,7 +92,6 @@ timer_elapsed (int64_t then) {
 void
 timer_sleep (int64_t ticks) {
 	int64_t start = timer_ticks ();
-
 	ASSERT (intr_get_level () == INTR_ON);
 
 	// 현재 스레드의 tick(절대 시간) 계산하여 넣음 -> 초기화 

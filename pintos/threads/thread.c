@@ -342,7 +342,7 @@ thread_yield (void) {
 	
 	// 현재 스레드가 idle_thread가 아니라면
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+		list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
 
 	// do_schedule 쓰지 않고 현재 스레드 상태를 바로 준비 상태로 변경
 	curr->status = THREAD_READY; 
@@ -426,9 +426,28 @@ thread_wakeUp(int64_t ticks)
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
+
+// SONNY'S PART
+// priority-change
+// 우선순위가 변경되었을 때 sort해주기 list_front랑 priority 비교
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+
+	// thread_current ()->priority = new_priority; 원본 코드
+	// SONNY'S CODE
+	struct thread *curr_t = thread_current();
+	curr_t->priority = new_priority;
+	if(curr_t->status == THREAD_RUNNING){
+
+		if(!list_empty(&ready_list)) {
+			struct thread *next_t = list_entry(list_front(&ready_list), struct thread, elem);
+			if(next_t->priority > curr_t->priority) {
+				thread_yield();
+			}
+		}
+	}
+		
+	// SONNY'S CODE
 }
 
 /* Returns the current thread's priority. */
