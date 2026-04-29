@@ -32,6 +32,10 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+//hoseok
+static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
+
+
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:
@@ -64,50 +68,32 @@ sema_down (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 	ASSERT (!intr_context ());
 
-	struct thread *curr_t = thread_current();
-
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		//list_push_back (&sema->waiters, &thread_current ()->elem);
+		/* dev-KDA conflict version kept for reference.
+		struct thread *curr_t = thread_current();
 		list_insert_ordered(&sema->waiters, &curr_t->elem, compare_priority, NULL);
-		
-		// priority 순으로 waiters에 넣어야 함
-		// thread_block 내부 schedule() 안에서 ready 리스트가 비어 있다고 판단하고 
-		// idle thread 반환하면서 ASSERT에 걸려서 PANIC 뜸
-		// 근데 idle thread 있어도 ASSERT에 걸리면 안 됨
-		//뭐지 
-		// 세마다운에서 왜 블락을하지?? 
-		// -> 이건 v 가 0일 때 세마다운 시도한 거라
-		// 세마 다운 실패로 block 처리하고 waiters로 넣어야 함 
 		thread_block ();
+		*/
+		// list_push_back (&sema->waiters, &thread_current ()->elem); hoseok 
 		
-		// thread_start 할 때 이미 세마 다운에 idle_started를 넣어주고 있었음
+		// 우선순위 대로 삽입
+		list_insert_ordered(&sema->waiters,  &thread_current ()->elem, compare_priority, NULL);
+		
+		thread_block ();
 	}
-
-	// --- priority-donate-one 구현 시도
-	// // 자원을 대기 중인 스레드가 있다면
-	// if(!list_empty(&sema->waiters))
-	// {
-	// 	struct thread *next_t = list_entry(list_front(&sema->waiters), struct thread, elem);
-
-	// 	// 현재 CPU를 할당 받은 스레드의 priority와 자원 대기 중인 스레드 중 priority 가장 높은 스레드의 priority와 비교
-	// 	// 현재 스레드보다 대기 중인 스레드의 priority가 더 크다면
-	// 	if(&curr_t->priority < &next_t->priority)
-	// 	{
-	// 		int old_priority = thread_get_priority(); 
-
-	// 		int new_priority = &next_t->priority;
-
-	// 		// curr_t의 priority를 new_priority로 변경 
-	// 		thread_set_priority(new_priority);
-	// 	}
-	// }
-	// --- 
-	
 	sema->value--;
-
-	//  donate - 어디서 우선순위를 돌려줘야하는거지? 
 	intr_set_level (old_level);
+}
+
+//hoseok 
+static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
+{
+	struct thread *thread_a = list_entry(a, struct thread, elem);
+	struct thread *thread_b = list_entry(b, struct thread, elem);
+
+	return thread_a->priority > thread_b->priority; 
+	// 큰 숫자가 앞으로 오는 compare함수, ready_list는 우선순위가 높은 순서대로 정렬되어야 하기 때문에
 }
 
 /* Down or "P" operation on a semaphore, but only if the
@@ -139,9 +125,6 @@ sema_try_down (struct semaphore *sema) {
    and wakes up one thread of those waiting for SEMA, if any.
 
    This function may be called from an interrupt handler. */
-   /* 세마포어에 대한 증가(Up) 또는 "V" 연산. SEMA의 값을 증가시키고,
-   SEMA를 대기 중인 스레드가 있다면 그중 하나를 깨웁니다.
-   이 함수는 인터럽트 핸들러 내에서 호출될 수 있습니다. */
 void
 sema_up (struct semaphore *sema) {
 	enum intr_level old_level;
@@ -149,40 +132,22 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
-
+	/* dev-KDA conflict version kept for reference.
 	if (!list_empty (&sema->waiters))
-	{
-		//struct thread* running_t = thread_current();
-
-		
-
-		//// sema->value++;가 위에 없으면 deadlock 상태 
-		struct thread *curr_t = thread_current();
-		//struct thread *unblock_t = list_entry (list_pop_front (&sema->waiters), struct thread, elem);
-		
-		// thread_unblock 내부에서 unblock_t를 우선순위에 맞춰 ready_list에 넣음
-		// thread_unblock 내부에서 thread의 상태를 READY로 변경 
-		//thread_unblock (unblock_t);
-		// 
 		thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
-		
-		//thread_yield();
-		// // ready_list에 들어간 후엔 yield를 통해 CPU 선점하게 됨
-		// // yield 안에서 인터럽트 비활성화 시키고 또 ready_list에 넣어서 쓰면 안 될듯
-		// unblock_t->status = THREAD_READY; 
-		// //do_schedule (THREAD_READY);
-	
-		//schedule();
-		
-		
-		// // unblock 후 yield 실행으로 현재 실행 중인 스레드가 우선순위 높은 스레드에게 양보해야 함
-		// if(running_t->priority < unblock_t->priority)
-		// {
-			// 	thread_yield();
-			// }
+	*/
+	if (!list_empty (&sema->waiters)) {
+
+		list_sort(&sema->waiters, compare_priority,NULL);
+		thread_unblock (list_entry (list_pop_front (&sema->waiters),
+					struct thread, elem));
+
 	}
-	
 	sema->value++;
+
+	// waiters 우선순위 제일 높은거 UNBLOCKED 해주고 ready_list로 삽입
+	thread_yield();
+
 	intr_set_level (old_level);
 }
 
@@ -299,9 +264,6 @@ lock_release (struct lock *lock) {
 /* Returns true if the current thread holds LOCK, false
    otherwise.  (Note that testing whether some other thread holds
    a lock would be racy.) */
-   /* 현재 스레드가 LOCK을 보유하고 있으면 true를 반환하고, 
-   그렇지 않으면 false를 반환합니다. (다른 스레드가 잠금을 보유하고 있는지 
-   확인하는 것은 경합 상황이 발생할 수 있음을 유의하십시오.) */
 bool
 lock_held_by_current_thread (const struct lock *lock) {
 	ASSERT (lock != NULL);
