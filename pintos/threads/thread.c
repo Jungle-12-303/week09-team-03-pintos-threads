@@ -83,14 +83,6 @@ static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
 
-// SONNY
-static bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
-static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
-// SONNY
-
-
-
-
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
 
@@ -352,11 +344,6 @@ thread_yield (void) {
 	// if (curr != idle_thread)
 	// 	list_push_back (&ready_list, &curr->elem);
 	
-	/* dev-KDA conflict version kept for reference.
-	if (curr != idle_thread)
-		list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
-	*/
-	
 	// NICK - ready_list에 현재 스레드를 우선순위에 맞게 넣어주기 
 	//&ready_list는 cpu에 할당받기 위해 준비된 스레드들이 대기하는 리스트이므로 우선순위에 맞게 큐에 
 	//&curr->elem는 현재 스레드의 list_elem 구조체로, ready_list에 삽입될 때 사용됨
@@ -385,7 +372,7 @@ static bool compare (const struct list_elem *a, const struct list_elem *b, void 
 }
 
 
-static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
 {
 	struct thread *thread_a = list_entry(a, struct thread, elem);
 	struct thread *thread_b = list_entry(b, struct thread, elem);
