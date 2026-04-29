@@ -27,6 +27,11 @@
    */
 
 #include "threads/synch.h"
+#include "threads/thread.h"
+static bool compare_thread_priority(const struct list_elem *a,
+									const struct list_elem *b, void *aux UNUSED);
+
+
 #include <stdio.h>
 #include <string.h>
 #include "threads/interrupt.h"
@@ -41,6 +46,16 @@
 
    - up or "V": increment the value (and wake up one waiting
    thread, if any). */
+
+static bool compare_thread_priority(const struct list_elem *a,
+									const struct list_elem *b, void *aux UNUSED)
+{
+	struct thread *thread_a = list_entry(a, struct thread, elem);
+	struct thread *thread_b = list_entry(b, struct thread, elem);
+
+	return thread_a->priority > thread_b->priority;
+}
+
 void
 sema_init (struct semaphore *sema, unsigned value) {
 	ASSERT (sema != NULL);
@@ -66,7 +81,11 @@ sema_down (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		list_push_back (&sema->waiters, &thread_current ()->elem);
+		// list_push_back (&sema->waiters, &thread_current ()->elem);
+		//NICK - sema_down() value가 0이 되면, 현재 스레드를 sema -> waiters ->blocked
+		list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_thread_priority, NULL);
+		//watiers에 내림차순 정렬해둠 
+		
 		thread_block ();
 	}
 	sema->value--;

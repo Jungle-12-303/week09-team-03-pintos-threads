@@ -347,6 +347,8 @@ thread_yield (void) {
 	
 	// 현재 스레드가 idle_thread가 아니라면
 	// if (curr != idle_thread)
+
+
 	// 	list_push_back (&ready_list, &curr->elem);
 	
 	
@@ -354,7 +356,8 @@ thread_yield (void) {
 	//&ready_list는 cpu에 할당받기 위해 준비된 스레드들이 대기하는 리스트이므로 우선순위에 맞게 큐에 
 	//&curr->elem는 현재 스레드의 list_elem 구조체로, ready_list에 삽입될 때 사용됨
 	//compare_priority는 우선순위 비교 함수, NULL은 보조 인자(사용하지 않으므로 NULL)
-	list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
+	if (curr != idle_thread)
+		list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
 	// NICK
 
 	// do_schedule 쓰지 않고 현재 스레드 상태를 바로 준비 상태로 변경
@@ -444,16 +447,22 @@ void
 thread_set_priority (int new_priority) {
 	
 	// 현재 스레드의 priority를 변경 
-	struct thread *curr_t = thread_current();
+	struct thread *curr_t = thread_current(); //
   	curr_t->priority = new_priority;	
+
+	thread_current() -> priority = new_priority;
 	
 	// ready 리스트 확인하기 전 intr 비활성화
 	intr_disable();
-	
+
+	//list_empty()가 비어있다면 list_entry()에서 뽑아서 줄 값이 없기 때문에 ready_list가 비어있는지 먼저 확인해야 함	
 	if(!list_empty(&ready_list))
 	{
+	
 		// ready_list에 있는 첫 스레드
-		struct thread *next_t = list_entry(list_front(&ready_list), struct thread, elem);
+		//struct thread *next_t = list_entry(list_front(&ready_list), struct thread, elem); // ready_list의 첫 번째 요소
+		struct thread *next_t = list_entry(list_begin(&ready_list), struct thread, elem); // ready_list의 첫 번째 요소
+		
 	
 		if(curr_t->priority < next_t->priority)
 		{
