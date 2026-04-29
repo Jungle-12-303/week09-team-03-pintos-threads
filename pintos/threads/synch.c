@@ -68,12 +68,20 @@ sema_down (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		// list_push_back (&sema->waiters, &thread_current ()->elem);
-
-		// priority 순으로 waiters에 넣어야 함
+		//list_push_back (&sema->waiters, &thread_current ()->elem);
 		list_insert_ordered(&sema->waiters, &curr_t->elem, compare_priority, NULL);
-
+		
+		// priority 순으로 waiters에 넣어야 함
+		// thread_block 내부 schedule() 안에서 ready 리스트가 비어 있다고 판단하고 
+		// idle thread 반환하면서 ASSERT에 걸려서 PANIC 뜸
+		// 근데 idle thread 있어도 ASSERT에 걸리면 안 됨
+		//뭐지 
+		// 세마다운에서 왜 블락을하지?? 
+		// -> 이건 v 가 0일 때 세마다운 시도한 거라
+		// 세마 다운 실패로 block 처리하고 waiters로 넣어야 함 
 		thread_block ();
+		
+		// thread_start 할 때 이미 세마 다운에 idle_started를 넣어주고 있었음
 	}
 
 	// --- priority-donate-one 구현 시도
@@ -97,7 +105,8 @@ sema_down (struct semaphore *sema) {
 	// --- 
 	
 	sema->value--;
-	// 어디서 우선순위를 돌려줘야하는거지? 
+
+	//  donate - 어디서 우선순위를 돌려줘야하는거지? 
 	intr_set_level (old_level);
 }
 
@@ -140,9 +149,39 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
+
 	if (!list_empty (&sema->waiters))
-		thread_unblock (list_entry (list_pop_front (&sema->waiters),
-					struct thread, elem));
+	{
+		//struct thread* running_t = thread_current();
+
+		
+
+		//// sema->value++;가 위에 없으면 deadlock 상태 
+		struct thread *curr_t = thread_current();
+		//struct thread *unblock_t = list_entry (list_pop_front (&sema->waiters), struct thread, elem);
+		
+		// thread_unblock 내부에서 unblock_t를 우선순위에 맞춰 ready_list에 넣음
+		// thread_unblock 내부에서 thread의 상태를 READY로 변경 
+		//thread_unblock (unblock_t);
+		// 
+		thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+		
+		//thread_yield();
+		// // ready_list에 들어간 후엔 yield를 통해 CPU 선점하게 됨
+		// // yield 안에서 인터럽트 비활성화 시키고 또 ready_list에 넣어서 쓰면 안 될듯
+		// unblock_t->status = THREAD_READY; 
+		// //do_schedule (THREAD_READY);
+	
+		//schedule();
+		
+		
+		// // unblock 후 yield 실행으로 현재 실행 중인 스레드가 우선순위 높은 스레드에게 양보해야 함
+		// if(running_t->priority < unblock_t->priority)
+		// {
+			// 	thread_yield();
+			// }
+	}
+	
 	sema->value++;
 	intr_set_level (old_level);
 }

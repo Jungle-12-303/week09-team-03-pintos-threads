@@ -235,6 +235,7 @@ split:
 }
 
 /* Initializes the page allocator and get the memory size */
+/* 페이지 할당기를 초기화하고 메모리 크기를 가져옵니다 */
 uint64_t
 palloc_init (void) {
   /* End of the kernel as recorded by the linker.

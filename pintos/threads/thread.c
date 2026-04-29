@@ -18,6 +18,8 @@
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
+   /* struct thread의 `magic' 멤버에 대한 임의의 값입니다.
+   스택 오버플로를 감지하는 데 사용됩니다. 자세한 내용은 thread.h 파일 상단에 있는 긴 주석을 참조하십시오. */
 #define THREAD_MAGIC 0xcd6abf4b
 
 /* Random value for basic thread
@@ -38,9 +40,9 @@ static struct list sleep_list;
 
 /* Idle thread. */
 /*
-ready_list에 실행한 준비가 된 스레드가 단 하낟고 없을 때(시스템에 당장 실행할 작업이 없을 때)
+ready_list에 실행한 준비가 된 스레드가 단 하나도 없을 때(시스템에 당장 실행할 작업이 없을 때)
 스케줄러에 의해 선택되어 실행되는 특수한 스레드
--> CPU가 아무 작업도 하지 않고 멈추는 것을 방지하기 위해 빈 시간을 채워주는 역할
+-> CPU가 아무 작업도 하지 않고 멈추는 것(deadlock)을 방지하기 위해 빈 시간을 채워주는 역할
 
 CPU가 놀고 있다고 Blocked 스레드를 실행하는 것은 X
 -> 운영체제가 시스템을 구동하면서 CPU가 놀게 될 때를 대비하여 자체적으로 미리 만들어두는 특수한 목적의 empty 스레드
@@ -85,6 +87,7 @@ static tid_t allocate_tid (void);
 // bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Returns true if T appears to point to a valid thread. */
+/* T가 유효한 스레드를 가리키는 것으로 보이면 true를 반환합니다. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
 
 /* Returns the running thread.
@@ -244,6 +247,12 @@ thread_create (const char *name, int priority,
    This function must be called with interrupts turned off.  It
    is usually a better idea to use one of the synchronization
    primitives in synch.h. */
+   /* 현재 스레드를 일시 정지시킵니다. thread_unblock()에 의해
+   다시 깨어날 때까지 스케줄링되지 않습니다.
+
+   이 함수는 인터럽트가 비활성화된 상태에서 호출해야 합니다.
+   일반적으로 synch.h에 정의된 동기화
+   기본 함수 중 하나를 사용하는 것이 더 좋습니다. */
 void
 thread_block (void) {
 	ASSERT (!intr_context ());
@@ -260,6 +269,16 @@ thread_block (void) {
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
    update other data. */
+   /* 차단된 스레드 T를 실행 준비 상태로 전환합니다.
+   T가 차단된 상태가 아니면 오류가 발생합니다. 
+   (실행 중인 스레드를 실행 준비 상태로 만들려면
+   thread_yield()를 사용하십시오.)
+
+   이 함수는 실행 중인 스레드를 선점하지 않습니다.  
+   이는 중요한 사항일 수 있습니다. 
+   호출자가 직접 인터럽트를 비활성화한 경우,
+   스레드의 차단 상태를 원자적으로 해제하고
+   다른 데이터를 업데이트할 수 있을 것으로 예상할 수 있기 때문입니다. */
 void
 thread_unblock (struct thread *t) {
 	enum intr_level old_level;
@@ -342,16 +361,17 @@ thread_yield (void) {
 	old_level = intr_disable ();
 	
 	// 현재 스레드가 idle_thread가 아니라면
-	// if (curr != idle_thread)
-	// 	list_push_back (&ready_list, &curr->elem);
+	if (curr != idle_thread)
+	{
+		// 	list_push_back (&ready_list, &curr->elem);
+
+		// NICK - ready_list에 현재 스레드를 우선순위에 맞게 넣어주기 
+		//&ready_list는 cpu에 할당받기 위해 준비된 스레드들이 대기하는 리스트이므로 우선순위에 맞게 큐에 
+		//&curr->elem는 현재 스레드의 list_elem 구조체로, ready_list에 삽입될 때 사용됨
+		//compare_priority는 우선순위 비교 함수, NULL은 보조 인자(사용하지 않으므로 NULL)
+		list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
+	}
 	
-	
-	// NICK - ready_list에 현재 스레드를 우선순위에 맞게 넣어주기 
-	//&ready_list는 cpu에 할당받기 위해 준비된 스레드들이 대기하는 리스트이므로 우선순위에 맞게 큐에 
-	//&curr->elem는 현재 스레드의 list_elem 구조체로, ready_list에 삽입될 때 사용됨
-	//compare_priority는 우선순위 비교 함수, NULL은 보조 인자(사용하지 않으므로 NULL)
-	list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
-	// NICK
 
 	// do_schedule 쓰지 않고 현재 스레드 상태를 바로 준비 상태로 변경
 	curr->status = THREAD_READY; 
@@ -508,6 +528,14 @@ thread_get_recent_cpu (void) {
    blocks.  After that, the idle thread never appears in the
    ready list.  It is returned by next_thread_to_run() as a
    special case when the ready list is empty. */
+   /* 유휴 스레드. 다른 실행 준비가 된 스레드가 없을 때 실행됩니다.
+
+   유휴 스레드는 처음에 thread_start()에 의해 준비 목록에 추가됩니다.
+   이 스레드는 처음에 한 번 스케줄링되며, 이때
+   idle_thread를 초기화하고, thread_start()가 계속 진행되도록
+   전달받은 세마포어를 "업" 상태로 설정한 후, 즉시
+   차단됩니다.  그 후, 유휴 스레드는 더 이상 준비 목록에 나타나지 않습니다.
+   준비 목록이 비어 있을 때 next_thread_to_run()이 이를 특수한 경우로 반환합니다. */
 static void
 idle (void *idle_started_ UNUSED) {
 	struct semaphore *idle_started = idle_started_;
@@ -570,7 +598,7 @@ init_thread (struct thread *t, const char *name, int priority) {
    idle_thread. */
 static struct thread *
 next_thread_to_run (void) {
-	if (list_empty (&ready_list))
+	if (list_empty (&ready_list))		
 		return idle_thread;
 	else
 		return list_entry (list_pop_front (&ready_list), struct thread, elem);
@@ -614,6 +642,13 @@ do_iret (struct intr_frame *tf) {
    It's not safe to call printf() until the thread switch is
    complete.  In practice that means that printf()s should be
    added at the end of the function. */
+   /* 새 스레드의 페이지 테이블을 활성화하여 스레드를 전환하고, 이전 스레드가 종료 중이라면 이를 종료합니다.
+
+   이 함수가 호출될 때, 우리는 방금 스레드 PREV에서 전환한 상태이며, 
+   새로운 스레드는 이미 실행 중이고 인터럽트는 여전히 비활성화되어 있습니다.
+
+   스레드 전환이 완료될 때까지 printf()를 호출하는 것은 안전하지 않습니다. 
+   실제로 이는 printf() 호출을 함수의 마지막에 추가해야 함을 의미합니다. */
 static void
 thread_launch (struct thread *th) {
 	uint64_t tf_cur = (uint64_t) &running_thread ()->tf;
@@ -625,6 +660,10 @@ thread_launch (struct thread *th) {
 	 * and then switching to the next thread by calling do_iret.
 	 * Note that, we SHOULD NOT use any stack from here
 	 * until switching is done. */
+		/* 주요 스레드 전환 로직.
+     * 먼저 전체 실행 컨텍스트를 intr_frame에 복원하고,
+     * do_iret를 호출하여 다음 스레드로 전환합니다.
+     * 여기서부터 전환이 완료될 때까지는 어떤 스택도 사용해서는 안 됩니다. */
 	__asm __volatile (
 			/* Store registers that will be used. */
 			"push %%rax\n"
