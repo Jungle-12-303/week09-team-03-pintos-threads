@@ -237,7 +237,7 @@ thread_create (const char *name, int priority,
 	//NICK - thread_unblock(t) 안에서 ready_list에 우선순위에 맞게 넣어주기 때문에 thread_create에서는 따로 우선순위 비교해서 넣어줄 필요 X
 	if(t -> priority > thread_current() -> priority) //t는 새로 만들어진 스레드, thread_current()는 현재 실행 중인 스레드
 		thread_yield(); //새 스레드가 우선순위가 높다면 thred_yield*()를 호출해서 현재 스레드가 cpu에서 양보하도록 함
-
+			
 	return tid;
 	//NICK 
 }
@@ -354,7 +354,8 @@ thread_yield (void) {
 	//&ready_list는 cpu에 할당받기 위해 준비된 스레드들이 대기하는 리스트이므로 우선순위에 맞게 큐에 
 	//&curr->elem는 현재 스레드의 list_elem 구조체로, ready_list에 삽입될 때 사용됨
 	//compare_priority는 우선순위 비교 함수, NULL은 보조 인자(사용하지 않으므로 NULL)
-	list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
+	if (curr != idle_thread)
+		list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
 	// NICK
 
 	// do_schedule 쓰지 않고 현재 스레드 상태를 바로 준비 상태로 변경
@@ -718,13 +719,17 @@ schedule (void) {
 #endif
 
 	if (curr != next) {
-		/* If the thread we switched from is dying, destroy its struct
-		   thread. This must happen late so that thread_exit() doesn't
-		   pull out the rug under itself.
-		   We just queuing the page free reqeust here because the page is
-		   currently used by the stack.
-		   The real destruction logic will be called at the beginning of the
-		   schedule(). */
+		/* 우리가 방금 전환해 나온 thread가 죽는 중이라면,
+   그 thread의 struct thread를 제거한다.
+   이 작업은 반드시 늦게 수행되어야 한다.
+   그래야 thread_exit()이 자기 자신이 아직 사용 중인 기반을
+   스스로 치워 버리는 일이 생기지 않는다.
+
+   여기서는 page free 요청만 큐에 넣는다.
+   왜냐하면 그 page는 현재 stack으로 사용되고 있기 때문이다.
+
+   실제로 메모리를 해제하는 로직은 schedule()의 시작 부분에서 호출된다. */
+
 		if (curr && curr->status == THREAD_DYING && curr != initial_thread) {
 			ASSERT (curr != next);
 			list_push_back (&destruction_req, &curr->elem);
