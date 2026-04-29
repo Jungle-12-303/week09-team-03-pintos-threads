@@ -36,6 +36,10 @@ static struct list ready_list;
 /* timer_sleep 호출로 blocked 스레드를 넣을 리스트 */
 static struct list sleep_list;
 
+
+/* SONNY'S CODE semaphore 구조체 변수 접근을 위한 포인터*/
+// struct semaphore* sema_pointer;
+
 /* Idle thread. */
 /*
 ready_list에 실행한 준비가 된 스레드가 단 하낟고 없을 때(시스템에 당장 실행할 작업이 없을 때)
@@ -80,10 +84,6 @@ static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
 
-// SONNY
-static bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
-static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
-// SONNY
 
 
 
@@ -117,6 +117,16 @@ static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
 
    It is not safe to call thread_current() until this function
    finishes. */
+/* 현재 실행 중인 코드를 하나의 스레드로 변환하여 스레딩 시스템을 초기화한다.
+   일반적으로는 이런 방식이 동작할 수 없지만, 이 경우에는 loader.S가
+   스택의 바닥을 페이지 경계에 맞추도록 신중하게 배치했기 때문에 가능하다.
+
+   또한 run queue와 tid lock도 초기화한다.
+
+   이 함수를 호출한 뒤에는 thread_create()로 스레드를 생성하려고 하기 전에
+   반드시 페이지 할당자를 초기화해야 한다.
+
+   이 함수가 끝나기 전까지는 thread_current()를 호출하는 것이 안전하지 않다. */
 void
 thread_init (void) {
 	ASSERT (intr_get_level () == INTR_OFF);
@@ -162,6 +172,8 @@ thread_start (void) {
 
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
+/* 타이머 인터럽트 핸들러에 의해 매 타이머 틱마다 호출된다.
+   따라서 이 함수는 외부 인터럽트 컨텍스트에서 실행된다. */
 void
 thread_tick (void) {
 	struct thread *t = thread_current ();
@@ -203,9 +215,22 @@ thread_print_stats (void) {
    The code provided sets the new thread's `priority' member to
    PRIORITY, but no actual priority scheduling is implemented.
    Priority scheduling is the goal of Problem 1-3. */
+/* 주어진 초기 PRIORITY를 가지며 NAME이라는 이름의 새 커널 스레드를 생성한다.
+   이 스레드는 AUX를 인자로 전달받아 FUNCTION을 실행하며,
+   생성된 뒤 ready queue에 추가된다. 새 스레드의 thread identifier를
+   반환하거나, 생성에 실패하면 TID_ERROR를 반환한다.
+
+   thread_start()가 호출된 상태라면, 새 스레드는 thread_create()가
+   반환되기 전에 스케줄링될 수도 있다. 심지어 thread_create()가
+   반환되기 전에 종료될 수도 있다. 반대로, 새 스레드가 스케줄링되기 전에
+   기존 스레드가 얼마든지 오랫동안 실행될 수도 있다.
+   실행 순서를 보장해야 한다면 세마포어 또는 다른 형태의 동기화를 사용하라.
+
+   제공된 코드는 새 스레드의 `priority' 멤버를 PRIORITY로 설정하지만,
+   실제 우선순위 스케줄링은 구현되어 있지 않다.
+   우선순위 스케줄링은 Problem 1-3의 목표이다. */
 tid_t
-thread_create (const char *name, int priority,
-		thread_func *function, void *aux) {
+thread_create (const char *name, int priority, thread_func *function, void *aux) {
 	struct thread *t; // 새로 만들어질 스레드의 포인터
 	tid_t tid; // 새로 만들어질 스레드의 ID
 
@@ -248,6 +273,12 @@ thread_create (const char *name, int priority,
    This function must be called with interrupts turned off.  It
    is usually a better idea to use one of the synchronization
    primitives in synch.h. */
+/* 현재 스레드를 잠들게 한다. 이 스레드는 thread_unblock()에 의해
+   다시 깨어나기 전까지는 다시 스케줄링되지 않는다.
+
+   이 함수는 반드시 인터럽트가 꺼진 상태에서 호출되어야 한다.
+   일반적으로는 synch.h에 있는 동기화 기본 요소들 중 하나를
+   사용하는 것이 더 좋은 방법이다. */
 void
 thread_block (void) {
 	ASSERT (!intr_context ());
@@ -255,15 +286,20 @@ thread_block (void) {
 	thread_current ()->status = THREAD_BLOCKED;
 	schedule ();
 }
-
 /* Transitions a blocked thread T to the ready-to-run state.
-   This is an error if T is not blocked.  (Use thread_yield() to
-   make the running thread ready.)
+   This is an error if T is not blocked. (Use thread_yield() to make the running thread ready.)
 
-   This function does not preempt the running thread.  This can
-   be important: if the caller had disabled interrupts itself,
-   it may expect that it can atomically unblock a thread and
-   update other data. */
+   This function does not preempt the running thread.
+   This can be important: if the caller had disabled interrupts itself,
+   it may expect that it can atomically unblock a thread and update other data. */
+/* 블록된 스레드 T를 실행 준비 상태(ready-to-run state)로 전환한다.
+   T가 블록된 상태가 아니라면 이는 오류이다. 실행 중인 스레드를
+   준비 상태로 만들려면 thread_yield()를 사용하라.
+
+   이 함수는 현재 실행 중인 스레드를 선점하지 않는다.
+   이 점이 중요할 수 있다. 호출자가 직접 인터럽트를 비활성화했다면,
+   스레드 하나를 원자적으로 unblock하고 다른 데이터를 갱신할 수
+   있기를 기대할 수 있기 때문이다. */
 void
 thread_unblock (struct thread *t) {
 	enum intr_level old_level;
@@ -336,40 +372,33 @@ void
 thread_yield (void) {
 	struct thread *curr = thread_current ();
 	
-	// 인터럽트 상태 저장을 위한 변수
 	enum intr_level old_level;
 
 	ASSERT (!intr_context ());
 
-	// 인터럽트 비활성화
-	// printf("인터럽트 비활성화\n");
 	old_level = intr_disable ();
-	
-	// 현재 스레드가 idle_thread가 아니라면
-	// if (curr != idle_thread)
-	// 	list_push_back (&ready_list, &curr->elem);
-	
-	
-	// NICK - ready_list에 현재 스레드를 우선순위에 맞게 넣어주기 
-	//&ready_list는 cpu에 할당받기 위해 준비된 스레드들이 대기하는 리스트이므로 우선순위에 맞게 큐에 
-	//&curr->elem는 현재 스레드의 list_elem 구조체로, ready_list에 삽입될 때 사용됨
-	//compare_priority는 우선순위 비교 함수, NULL은 보조 인자(사용하지 않으므로 NULL)
 
-	list_insert_ordered(&ready_list, &curr->elem, compare_priority, NULL);
-	// NICK
 
-	// do_schedule 쓰지 않고 현재 스레드 상태를 바로 준비 상태로 변경
-	curr->status = THREAD_READY; 
+	/* NICK - ready_list에 현재 스레드를 우선순위에 맞게 넣어주기 
+	   &ready_list는 cpu에 할당받기 위해 준비된 스레드들이 대기하는 리스트이므로 우선순위에 맞게 큐에 
+	   &curr->elem는 현재 스레드의 list_elem 구조체로, ready_list에 삽입될 때 사용됨
+	   compare_priority는 우선순위 비교 함수, NULL은 보조 인자(사용하지 않으므로 NULL) */
+
+	if (curr != idle_thread)
+		list_insert_ordered (&ready_list, &curr->elem, compare_priority, NULL);
+	
+
+	curr->status = THREAD_READY;
+
+	/* do_schedule 쓰지 않고 현재 스레드 상태를 바로 준비 상태로 변경  */
 	// do_schedule (THREAD_READY);
 	
-	schedule();
+	schedule ();
 
-	// 스케줄링으로 실행 재개 될 때 인터럽트 활성화 
-	// printf("인터럽트 활성화\n");
 	intr_set_level (old_level);
 }
 
-static bool compare (const struct list_elem *a, const struct list_elem *b, void *aux) 
+bool compare (const struct list_elem *a, const struct list_elem *b, void *aux) 
 {
 	struct thread *thread_a = list_entry(a, struct thread, elem);
 	struct thread *thread_b = list_entry(b, struct thread, elem);
@@ -378,7 +407,7 @@ static bool compare (const struct list_elem *a, const struct list_elem *b, void 
 }
 
 
-static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
 {
 	struct thread *thread_a = list_entry(a, struct thread, elem);
 	struct thread *thread_b = list_entry(b, struct thread, elem);
@@ -450,7 +479,7 @@ thread_set_priority (int new_priority) {
 	
 	// 현재 스레드의 priority를 변경 
 	struct thread *curr_t = thread_current();
-  	curr_t->priority = new_priority;	
+  	curr_t->priority = new_priority;
 	
 	// ready 리스트 확인하기 전 intr 비활성화
 	intr_disable();

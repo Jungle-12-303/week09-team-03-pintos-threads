@@ -150,4 +150,11 @@ int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
 
+// SONNY
+// compare_priority를 synch.c에서 사용하기 위해 static 제거
+bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
+// SONNY
+
+
 #endif /* threads/thread.h */
