@@ -18,6 +18,9 @@
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
+   /* struct thread의 `magic' 멤버에 대한 임의의 값.
+   스택 오버플로를 감지하는 데 사용됩니다. 자세한 내용은 
+   thread.h 파일 상단에 있는 긴 주석을 참조하십시오. */
 #define THREAD_MAGIC 0xcd6abf4b
 
 /* Random value for basic thread
@@ -83,10 +86,6 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
-
-
-
-
 
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -374,6 +373,7 @@ thread_yield (void) {
 	enum intr_level old_level;
 	ASSERT (!intr_context ());
 	old_level = intr_disable ();
+	
 
 	/* NICK - ready_list에 현재 스레드를 우선순위에 맞게 넣어주기 
 	   &ready_list는 cpu에 할당받기 위해 준비된 스레드들이 대기하는 리스트이므로 우선순위에 맞게 큐에 
@@ -734,13 +734,17 @@ schedule (void) {
 #endif
 
 	if (curr != next) {
-		/* If the thread we switched from is dying, destroy its struct
-		   thread. This must happen late so that thread_exit() doesn't
-		   pull out the rug under itself.
-		   We just queuing the page free reqeust here because the page is
-		   currently used by the stack.
-		   The real destruction logic will be called at the beginning of the
-		   schedule(). */
+		/* 우리가 방금 전환해 나온 thread가 죽는 중이라면,
+   그 thread의 struct thread를 제거한다.
+   이 작업은 반드시 늦게 수행되어야 한다.
+   그래야 thread_exit()이 자기 자신이 아직 사용 중인 기반을
+   스스로 치워 버리는 일이 생기지 않는다.
+
+   여기서는 page free 요청만 큐에 넣는다.
+   왜냐하면 그 page는 현재 stack으로 사용되고 있기 때문이다.
+
+   실제로 메모리를 해제하는 로직은 schedule()의 시작 부분에서 호출된다. */
+
 		if (curr && curr->status == THREAD_DYING && curr != initial_thread) {
 			ASSERT (curr != next);
 			list_push_back (&destruction_req, &curr->elem);

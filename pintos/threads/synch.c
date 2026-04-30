@@ -78,6 +78,16 @@ sema_down (struct semaphore *sema) {
 	intr_set_level (old_level);
 }
 
+//hoseok 
+// static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
+// {
+// 	struct thread *thread_a = list_entry(a, struct thread, elem);
+// 	struct thread *thread_b = list_entry(b, struct thread, elem);
+
+// 	return thread_a->priority > thread_b->priority; 
+// 	// 큰 숫자가 앞으로 오는 compare함수, ready_list는 우선순위가 높은 순서대로 정렬되어야 하기 때문에
+// }
+
 /* Down or "P" operation on a semaphore, but only if the
    semaphore is not already 0.  Returns true if the semaphore is
    decremented, false otherwise.
@@ -119,11 +129,12 @@ sema_up (struct semaphore *sema) {
 		/* SONNY'S CODE */
 		list_sort (&sema->waiters, compare_priority, NULL);
 		/* SONNY'S CODE */
-
 		thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
 	}
 
 	sema->value++;
+
+	// waiters 우선순위 제일 높은거 UNBLOCKED 해주고 ready_list로 삽입
 	thread_yield ();
 	intr_set_level (old_level);
 }
