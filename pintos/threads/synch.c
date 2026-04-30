@@ -28,14 +28,12 @@
 
 #include "threads/synch.h"
 #include "threads/thread.h"
-static bool compare_thread_priority(const struct list_elem *a,
-									const struct list_elem *b, void *aux UNUSED);
-
-
 #include <stdio.h>
 #include <string.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+
+
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -47,19 +45,11 @@ static bool compare_thread_priority(const struct list_elem *a,
    - up or "V": increment the value (and wake up one waiting
    thread, if any). */
 
-static bool compare_thread_priority(const struct list_elem *a,
-									const struct list_elem *b, void *aux UNUSED)
-{
-	struct thread *thread_a = list_entry(a, struct thread, elem);
-	struct thread *thread_b = list_entry(b, struct thread, elem);
-
-	return thread_a->priority > thread_b->priority;
-}
 
 void
 sema_init (struct semaphore *sema, unsigned value) {
 	ASSERT (sema != NULL);
-
+	
 	sema->value = value;
 	list_init (&sema->waiters);
 }
@@ -81,16 +71,25 @@ sema_down (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		// list_push_back (&sema->waiters, &thread_current ()->elem);
-		//NICK - sema_down() value가 0이 되면, 현재 스레드를 sema -> waiters ->blocked
-		list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_thread_priority, NULL);
-		//watiers에 내림차순 정렬해둠 
-		
+
+		/* SONNY'S CODE waiters 리스트에 priority순으로 insert */
+		list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, NULL);
 		thread_block ();
+		/* SONNY'S CODE */
 	}
 	sema->value--;
 	intr_set_level (old_level);
 }
+
+//hoseok 
+// static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux) 
+// {
+// 	struct thread *thread_a = list_entry(a, struct thread, elem);
+// 	struct thread *thread_b = list_entry(b, struct thread, elem);
+
+// 	return thread_a->priority > thread_b->priority; 
+// 	// 큰 숫자가 앞으로 오는 compare함수, ready_list는 우선순위가 높은 순서대로 정렬되어야 하기 때문에
+// }
 
 /* Down or "P" operation on a semaphore, but only if the
    semaphore is not already 0.  Returns true if the semaphore is
@@ -128,10 +127,18 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
-	if (!list_empty (&sema->waiters))
-		thread_unblock (list_entry (list_pop_front (&sema->waiters),
-					struct thread, elem));
+	if (!list_empty (&sema->waiters)) {
+
+		/* SONNY'S CODE */
+		list_sort (&sema->waiters, compare_priority, NULL);
+		/* SONNY'S CODE */
+		thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+	}
+
 	sema->value++;
+
+	// waiters 우선순위 제일 높은거 UNBLOCKED 해주고 ready_list로 삽입
+	thread_yield ();
 	intr_set_level (old_level);
 }
 
@@ -169,7 +176,7 @@ sema_test_helper (void *sema_) {
 		sema_up (&sema[1]);
 	}
 }
-
+
 /* Initializes LOCK.  A lock can be held by at most a single
    thread at any given time.  Our locks are not "recursive", that
    is, it is an error for the thread currently holding a lock to
@@ -254,7 +261,7 @@ lock_held_by_current_thread (const struct lock *lock) {
 
 	return lock->holder == thread_current ();
 }
-
+
 /* One semaphore in a list. */
 struct semaphore_elem {
 	struct list_elem elem;              /* List element. */

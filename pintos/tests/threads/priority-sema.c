@@ -31,10 +31,10 @@ test_priority_sema (void)
     }
 
   for (i = 0; i < 10; i++) 
-    {
-      sema_up (&sema);
-      msg ("Back in main thread."); 
-    }
+  {
+    sema_up (&sema);
+    msg ("Back in main thread."); 
+  }
 }
 
 static void

@@ -10,6 +10,9 @@ struct semaphore {
 	struct list waiters;        /* List of waiting threads. */
 };
 
+/* SONNY'S CODE */
+// extern struct semaphore* sema_pointer;
+
 void sema_init (struct semaphore *, unsigned value);
 void sema_down (struct semaphore *);
 bool sema_try_down (struct semaphore *);

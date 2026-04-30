@@ -73,12 +73,28 @@ typedef int tid_t;
  *       structures or arrays as non-static local variables.  Use
  *       dynamic allocation with malloc() or palloc_get_page()
  *       instead.
+ *     1. 첫째, `struct thread'의 크기가 너무 커져서는
+ *       안 됩니다.  크기가 너무 커지면 커널 스택을 위한
+ *       공간이 부족해집니다.  기본 `struct thread'의 크기는
+ *       불과 몇 바이트에 불과합니다.  아마도 1
+ *       kB를 훨씬 밑도는 수준으로 유지해야 할 것입니다.
  *
+ *    2. 둘째, 커널 스택이 너무
+ *       커지지 않도록 해야 합니다.  스택이 오버플로우되면 스레드
+ *       상태가 손상됩니다.  따라서 커널 함수는 큰
+ *       구조체나 배열을 비정적 지역 변수로 할당해서는 안 됩니다.  대신
+ *       malloc()이나 palloc_get_page()를 사용하여
+ *       동적 할당을 사용하십시오.
  * The first symptom of either of these problems will probably be
  * an assertion failure in thread_current(), which checks that
  * the `magic' member of the running thread's `struct thread' is
  * set to THREAD_MAGIC.  Stack overflow will normally change this
- * value, triggering the assertion. */
+ * value, triggering the assertion. 
+ * 이 두 문제 중 어느 것이든 첫 번째 증상은 아마도 다음과 같을 것입니다.
+ * thread_current() 함수에서 발생하는 어설션 실패로, 이 함수는
+ * 실행 중인 스레드의 `struct thread` 구조체 내 `magic` 멤버가
+ * THREAD_MAGIC으로 설정되어 있는지 확인합니다. 스택 오버플로는 일반적으로 이
+ * 값을 변경하여 어설션을 유발합니다. */
 /* The `elem' member has a dual purpose.  It can be an element in
  * the run queue (thread.c), or it can be an element in a
  * semaphore wait list (synch.c).  It can be used these two ways
@@ -137,6 +153,10 @@ const char *thread_name (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 
+// synch.c에서 사용 가능하도록 옮김
+static bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
+
 void thread_sleep();
 void thread_wakeUp();
 
@@ -149,5 +169,12 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
+
+// SONNY
+// compare_priority를 synch.c에서 사용하기 위해 static 제거
+bool compare (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
+// SONNY
+
 
 #endif /* threads/thread.h */
