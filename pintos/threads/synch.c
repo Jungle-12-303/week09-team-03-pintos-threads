@@ -32,6 +32,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+
+
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:
@@ -44,7 +46,7 @@
 void
 sema_init (struct semaphore *sema, unsigned value) {
 	ASSERT (sema != NULL);
-
+	
 	sema->value = value;
 	list_init (&sema->waiters);
 }
@@ -66,12 +68,11 @@ sema_down (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	while (sema->value == 0) {
-		struct thread *curr_t = thread_current();
 
-		// 우선순위 대로 삽입
-		list_insert_ordered(&sema->waiters, &curr_t->elem, compare_priority, NULL);
-
+		/* SONNY'S CODE waiters 리스트에 priority순으로 insert */
+		list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, NULL);
 		thread_block ();
+		/* SONNY'S CODE */
 	}
 	sema->value--;
 	intr_set_level (old_level);
@@ -123,16 +124,18 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
-
 	if (!list_empty (&sema->waiters)) {
-		list_sort(&sema->waiters, compare_priority, NULL);
+
+		/* SONNY'S CODE */
+		list_sort (&sema->waiters, compare_priority, NULL);
+		/* SONNY'S CODE */
 		thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
 	}
+
 	sema->value++;
 
 	// waiters 우선순위 제일 높은거 UNBLOCKED 해주고 ready_list로 삽입
-	thread_yield();
-
+	thread_yield ();
 	intr_set_level (old_level);
 }
 
@@ -170,7 +173,7 @@ sema_test_helper (void *sema_) {
 		sema_up (&sema[1]);
 	}
 }
-
+
 /* Initializes LOCK.  A lock can be held by at most a single
    thread at any given time.  Our locks are not "recursive", that
    is, it is an error for the thread currently holding a lock to
@@ -255,7 +258,7 @@ lock_held_by_current_thread (const struct lock *lock) {
 
 	return lock->holder == thread_current ();
 }
-
+
 /* One semaphore in a list. */
 struct semaphore_elem {
 	struct list_elem elem;              /* List element. */
