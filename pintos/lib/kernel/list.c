@@ -30,8 +30,7 @@
    without sacrificing this simplicity.  But using two separate
    elements allows us to do a little bit of checking on some
    operations, which can be valuable.) */
- 
-   // UNUSED: 정의만 있고 선언 또는 사용되지 않은 함수/변수에 대한 오류가 뜨지 않도록 처리하는 매크로 
+
 static bool is_sorted (struct list_elem *a, struct list_elem *b,
 		list_less_func *less, void *aux) UNUSED;
 
@@ -321,9 +320,6 @@ list_reverse (struct list *list) {
 
 /* Returns true only if the list elements A through B (exclusive)
    are in order according to LESS given auxiliary data AUX. */
-/* 보조 데이터 AUX가 주어졌을 때, 목록의 A번 요소부터 B번 요소(B번 요소는 제외)까지가
-   LESS에 따라 정렬되어 있는 경우에만 true를 반환합니다. */
-   // 리스트 전체가 정렬되어 있는지 검사하는 함수 
 static bool
 is_sorted (struct list_elem *a, struct list_elem *b,
 		list_less_func *less, void *aux) {
@@ -419,10 +415,9 @@ list_sort (struct list *list, list_less_func *less, void *aux) {
 /* Inserts ELEM in the proper position in LIST, which must be
    sorted according to LESS given auxiliary data AUX.
    Runs in O(n) average case in the number of elements in LIST. */
-   /* LIST의 적절한 위치에 ELEM을 삽입합니다. 이때 LIST는 보조 데이터 AUX를 사용하여 LESS에 따라 정렬되어 있어야 합니다.
-   LIST의 요소 수에 따라 평균 O(n) 시간 복잡도를 가집니다. */
 void
-list_insert_ordered (struct list *list, struct list_elem *elem, list_less_func *less, void *aux) {
+list_insert_ordered (struct list *list, struct list_elem *elem,
+		list_less_func *less, void *aux) {
 	struct list_elem *e;
 
 	ASSERT (list != NULL);
@@ -492,8 +487,3 @@ list_min (struct list *list, list_less_func *less, void *aux) {
 	}
 	return min;
 }
-
-// typedef 함수 포인터
-// 얘 자리에 들어가서 동작하게 하는 걸 만들어야 함
-// 얘를 정의하는게 아님!!!!!!
-typedef bool list_less_func (const struct list_elem *a, const struct list_elem *b, void *aux);

@@ -1,5 +1,4 @@
 #include "devices/timer.h"
-#include "lib/kernel/list.h"
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
@@ -94,16 +93,8 @@ timer_sleep (int64_t ticks) {
 	int64_t start = timer_ticks ();
 
 	ASSERT (intr_get_level () == INTR_ON);
-
-	// 현재 스레드의 tick(절대 시간) 계산하여 넣음 -> 초기화 
-	thread_current()->thread_tick = start + ticks;
-
-	// 내가 구현한 thread_sleep 함수 호출 
-	thread_sleep();
-
-	// 기존 코드 = busy  wait 형식, 이걸 버려야 한다 
-	// 	while (timer_elapsed (start) < ticks)
-	// 		thread_yield ();
+	while (timer_elapsed (start) < ticks)
+		thread_yield ();
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -129,24 +120,13 @@ void
 timer_print_stats (void) {
 	printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
-
+
 /* Timer interrupt handler. */
-// sleep_list에 있는 잠든 스레드들 중 목표 tick이 지난 스레드를 깨우는 함수
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
-
-	thread_wakeUp(ticks);
-	// // 스레드 하나가 timer.c를 하나씩 가지고 실행하는가?
-	// if(timer_ticks () <= thread_current()->thread_tick)
-	// {
-	// 	thread_wakeUp();
-	// }
-
 	thread_tick ();
 }
-
-
 
 /* Returns true if LOOPS iterations waits for more than one timer
    tick, otherwise false. */
