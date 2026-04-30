@@ -1,0 +1,14 @@
+{
+  "threads": {
+    "tests/threads/alarm-single": {
+      "count": 1,
+      "last_used": 1777560516.626,
+      "last_action": "run"
+    },
+    "tests/threads/alarm-multiple": {
+      "count": 1,
+      "last_used": 1777560521.521,
+      "last_action": "run"
+    }
+  }
+}
