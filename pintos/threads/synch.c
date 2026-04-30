@@ -27,6 +27,7 @@
    */
 
 #include "threads/synch.h"
+#include "threads/thread.h"
 #include <stdio.h>
 #include <string.h>
 #include "threads/interrupt.h"
@@ -43,6 +44,8 @@
 
    - up or "V": increment the value (and wake up one waiting
    thread, if any). */
+
+
 void
 sema_init (struct semaphore *sema, unsigned value) {
 	ASSERT (sema != NULL);

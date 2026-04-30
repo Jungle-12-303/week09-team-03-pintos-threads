@@ -9,10 +9,4 @@ priority-donate-nest FAIL
 alarm-single PASS
 priority-donate-multiple2 FAIL
 alarm-priority PASS
-priority-fifo FAIL
-priority-sema FAIL
-alarm-zero PASS
-priority-change FAIL
-alarm-negative PASS
-priority-donate-sema FAIL
-alarm-multiple PASS
+priority-change PASS
