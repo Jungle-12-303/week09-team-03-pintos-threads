@@ -101,7 +101,8 @@ struct list {
    of the list element.  See the big comment at the top of the
    file for an example. */
 #define list_entry(LIST_ELEM, STRUCT, MEMBER)           \
-	((STRUCT *) ((uint8_t *) &(LIST_ELEM)->next - offsetof (STRUCT, MEMBER.next)))
+	((STRUCT *) ((uint8_t *) &(LIST_ELEM)->next     \
+		- offsetof (STRUCT, MEMBER.next)))
 
 void list_init (struct list *);
 
@@ -143,8 +144,6 @@ void list_reverse (struct list *);
 /* Compares the value of two list elements A and B, given
    auxiliary data AUX.  Returns true if A is less than B, or
    false if A is greater than or equal to B. */
-// list_insert_ordered를 사용할 때의 정렬 기준
-// 개발자가 직접 구현해야 하는 함수의 형태를 정의해둔 것 
 typedef bool list_less_func (const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux);
