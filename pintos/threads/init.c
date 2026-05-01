@@ -254,6 +254,8 @@ run_task (char **argv) {
 
 /* Executes all of the actions specified in ARGV[]
    up to the null pointer sentinel. */
+/* ARGV[]에 지정된 모든 작업을 실행합니다.
+   null 포인터 센티넬에 도달할 때까지. */
 static void
 run_actions (char **argv) {
 	/* An action. */
