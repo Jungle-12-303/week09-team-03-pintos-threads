@@ -200,6 +200,18 @@ strstr (const char *haystack, const char *needle) {
    in particular, are *not* modifiable in C, even though for
    backward compatibility they are not `const'.
 
+   문자열을 DELIMITERS로 구분된 토큰으로 분할합니다.  이 함수가
+   처음 호출될 때는 S가 토큰화할 문자열이어야 하며,
+   이후 호출에서는 S가 null 포인터여야 합니다.
+   SAVE_PTR은 토큰화기의 위치를 추적하는 데 사용되는 `char *' 변수의 주소입니다.  매번 반환되는 값은 문자열의 다음 토큰이며, 더 이상 토큰이 남아 있지 않은 경우 null 포인터를 반환합니다.
+
+   이 함수는 인접한 여러 개의 구분자를 하나의 구분자로 처리합니다. 반환되는 토큰의 길이는 절대 0이 되지 않습니다.
+   단일 문자열 내에서 호출할 때마다 구분자가 달라질 수 있습니다.
+
+   strtok_r()은 문자열 S를 수정하여 구분자를 null 바이트로 변경합니다.
+   따라서 S는 수정 가능한 문자열이어야 합니다. 특히, 문자열 리터럴은
+   C에서 수정할 수 없습니다. 비록 하위 호환성을 위해 `const`가 아니더라도 말입니다.
+   
    Example usage:
 
    char s[] = "  String to  tokenize. ";
