@@ -28,6 +28,7 @@ static void initd (void *f_name);
 static void __do_fork (void *);
 
 /* General process initializer for initd and other process. */
+/* initd 및 기타 프로세스를 위한 일반 프로세스 초기화 프로그램. */
 static void
 process_init (void) {
 	struct thread *current = thread_current ();
@@ -38,6 +39,10 @@ process_init (void) {
  * before process_create_initd() returns. Returns the initd's
  * thread id, or TID_ERROR if the thread cannot be created.
  * Notice that THIS SHOULD BE CALLED ONCE. */
+/* FILE_NAME에서 로드된 "initd"라는 첫 번째 사용자 공간 프로그램을 시작합니다.
+ * process_create_initd()가 반환되기 전에 새 스레드가 스케줄링되거나(심지어 종료될 수도 있음)
+ * initd의 스레드 ID를 반환하며, 스레드를 생성할 수 없는 경우 TID_ERROR를 반환합니다.
+ * 이 함수는 한 번만 호출되어야 합니다. */
 tid_t
 process_create_initd (const char *file_name) {
 	char *fn_copy;
@@ -45,12 +50,15 @@ process_create_initd (const char *file_name) {
 
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
+	/* FILE_NAME의 복사본을 생성합니다.
+     * 그렇지 않으면 호출자와 load() 간에 경합이 발생합니다. */
 	fn_copy = palloc_get_page (0);
 	if (fn_copy == NULL)
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
 
 	/* Create a new thread to execute FILE_NAME. */
+	/* FILE_NAME을 실행하기 위해 새로운 스레드를 생성합니다. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
@@ -58,6 +66,7 @@ process_create_initd (const char *file_name) {
 }
 
 /* A thread function that launches first user process. */
+/* 첫 번째 사용자 프로세스를 시작하는 스레드 함수. */
 static void
 initd (void *f_name) {
 #ifdef VM
@@ -73,9 +82,12 @@ initd (void *f_name) {
 
 /* Clones the current process as `name`. Returns the new process's thread id, or
  * TID_ERROR if the thread cannot be created. */
+/* 현재 프로세스를 `name`으로 복제합니다. 
+ * 새 프로세스의 스레드 ID를 반환하며, 스레드를 생성할 수 없는 경우 TID_ERROR를 반환합니다. */
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	/* Clone current thread to new thread.*/
+	/* 현재 스레드를 복제하여 새 스레드를 생성합니다.*/
 	return thread_create (name,
 			PRI_DEFAULT, __do_fork, thread_current ());
 }
@@ -83,6 +95,8 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 #ifndef VM
 /* Duplicate the parent's address space by passing this function to the
  * pml4_for_each. This is only for the project 2. */
+/* 이 함수를 pml4_for_each에 전달하여 부모의 주소 공간을 복제합니다.
+ * 이는 프로젝트 2 전용입니다. - Argument Passing이 아닌 Fork()에 사용되는 부분 */
 static bool
 duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	struct thread *current = thread_current ();
@@ -116,19 +130,25 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
  * Hint) parent->tf does not hold the userland context of the process.
  *       That is, you are required to pass second argument of process_fork to
  *       this function. */
+/* 부모 프로세스의 실행 컨텍스트를 복사하는 스레드 함수입니다.
+ * 힌트) parent->tf에는 프로세스의 사용자 영역 컨텍스트가 저장되어 있지 않습니다.
+ *       즉, process_fork의 두 번째 인수를 이 함수에 전달해야 합니다. */
 static void
 __do_fork (void *aux) {
 	struct intr_frame if_;
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
+	/* TODO: parent_if를 어떻게든 전달해야 함. (예: process_fork()의 if_) */
 	struct intr_frame *parent_if;
 	bool succ = true;
 
 	/* 1. Read the cpu context to local stack. */
+	/* 1. CPU 컨텍스트를 로컬 스택에 읽어옵니다. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
 
 	/* 2. Duplicate PT */
+	/* 2. 중복 PT */
 	current->pml4 = pml4_create();
 	if (current->pml4 == NULL)
 		goto error;
@@ -148,10 +168,14 @@ __do_fork (void *aux) {
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
-
+	/* TODO: 코드를 여기에 작성하세요.
+     * TODO: 힌트) 파일 객체를 복제하려면 include/filesys/file.h에 있는 `file_duplicate`를 사용하세요.
+     * TODO:       이 함수가 부모 프로세스의 리소스를 성공적으로 복제할 때까지 부모 프로세스는 fork()에서 반환되어서는 안 됩니다.
+     * TODO:       */
 	process_init ();
 
 	/* Finally, switch to the newly created process. */
+	/* 마지막으로, 새로 생성된 프로세스로 전환합니다. */
 	if (succ)
 		do_iret (&if_);
 error:
@@ -160,6 +184,8 @@ error:
 
 /* Switch the current execution context to the f_name.
  * Returns -1 on fail. */
+/* 현재 실행 컨텍스트를 f_name으로 전환합니다.
+ * 실패 시 -1을 반환합니다. */
 int
 process_exec (void *f_name) {
 	char *file_name = f_name;
@@ -168,23 +194,30 @@ process_exec (void *f_name) {
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
 	 * it stores the execution information to the member. */
+	/* 스레드 구조체 내에서 intr_frame을 사용할 수 없습니다.
+     * 이는 현재 스레드가 재스케줄링될 때,
+     * 해당 멤버에 실행 정보를 저장하기 때문입니다. */
 	struct intr_frame _if;
 	_if.ds = _if.es = _if.ss = SEL_UDSEG;
 	_if.cs = SEL_UCSEG;
 	_if.eflags = FLAG_IF | FLAG_MBS;
 
 	/* We first kill the current context */
+	/* 먼저 현재 컨텍스트를 종료합니다 */
 	process_cleanup ();
 
 	/* And then load the binary */
+	/* 그런 다음 바이너리를 로드합니다 */
 	success = load (file_name, &_if);
 
 	/* If load failed, quit. */
+	/* 로드에 실패하면 종료합니다. */
 	palloc_free_page (file_name);
 	if (!success)
 		return -1;
 
 	/* Start switched process. */
+	/* 스위치된 프로세스를 시작합니다. */
 	do_iret (&_if);
 	NOT_REACHED ();
 }
@@ -320,6 +353,10 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
  * Stores the executable's entry point into *RIP
  * and its initial stack pointer into *RSP.
  * Returns true if successful, false otherwise. */
+/* FILE_NAME에 있는 ELF 실행 파일을 현재 스레드에 로드합니다.
+ * 실행 파일의 진입점을 *RIP에 저장하고,
+ * 초기 스택 포인터를 *RSP에 저장합니다.
+ * 성공하면 true를, 그렇지 않으면 false를 반환합니다. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
 	struct thread *t = thread_current ();
@@ -330,6 +367,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	int i;
 
 	/* Allocate and activate page directory. */
+	/* 페이지 디렉터리를 할당하고 활성화합니다. */
 	t->pml4 = pml4_create ();
 	if (t->pml4 == NULL)
 		goto done;
@@ -343,6 +381,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	}
 
 	/* Read and verify executable header. */
+	/* 실행 파일 헤더를 읽고 검증합니다. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
 			|| memcmp (ehdr.e_ident, "\177ELF\2\1\1", 7)
 			|| ehdr.e_type != 2
@@ -388,12 +427,16 @@ load (const char *file_name, struct intr_frame *if_) {
 					if (phdr.p_filesz > 0) {
 						/* Normal segment.
 						 * Read initial part from disk and zero the rest. */
+						/* 일반 세그먼트.
+                         * 디스크에서 초기 부분을 읽고 나머지는 0으로 채웁니다. */
 						read_bytes = page_offset + phdr.p_filesz;
 						zero_bytes = (ROUND_UP (page_offset + phdr.p_memsz, PGSIZE)
 								- read_bytes);
 					} else {
 						/* Entirely zero.
 						 * Don't read anything from disk. */
+						/* 모두 0입니다.
+                         * 디스크에서 아무것도 읽지 마십시오. */
 						read_bytes = 0;
 						zero_bytes = ROUND_UP (page_offset + phdr.p_memsz, PGSIZE);
 					}
@@ -416,7 +459,9 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-
+	/* TODO: 코드를 여기에 작성하세요.
+     * TODO: 인자 전달 기능을 구현하세요(project2/argument_passing.html 참조). */
+	 
 	success = true;
 
 done:
