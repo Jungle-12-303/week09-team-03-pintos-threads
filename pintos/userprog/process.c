@@ -43,6 +43,11 @@ process_init (void) {
  * process_create_initd()가 반환되기 전에 새 스레드가 스케줄링되거나(심지어 종료될 수도 있음)
  * initd의 스레드 ID를 반환하며, 스레드를 생성할 수 없는 경우 TID_ERROR를 반환합니다.
  * 이 함수는 한 번만 호출되어야 합니다. */
+
+/* KDA'S CODE - start */
+tid_t init_tid = 0;
+/* KDA'S CODE - end */
+
 tid_t
 process_create_initd (const char *file_name) {
 	char *fn_copy;
@@ -62,6 +67,10 @@ process_create_initd (const char *file_name) {
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
+	
+	/* KDA'S CODE - start */
+	init_tid = tid;
+	/* KDA'S CODE - end */
 	return tid;
 }
 
@@ -217,8 +226,8 @@ process_exec (void *f_name) {
 		return -1;
 
 	/* Start switched process. */
-	/* 스위치된 프로세스를 시작합니다. */
-	/* ?? do_iret()? ?? ?? ??? ?????. */
+	/* 스위치된 프로세스를 시작합니다. 
+		-> 유저 모드로 실행 */
 	do_iret (&_if);
 	NOT_REACHED ();
 }
@@ -233,32 +242,58 @@ process_exec (void *f_name) {
  *
  * This function will be implemented in problem 2-2.  For now, it
  * does nothing. */
+/* 스레드 TID가 종료될 때까지 대기한 후, 해당 스레드의 종료 상태를 반환합니다. 만약
+ * 커널에 의해 종료된 경우(즉, 예외로 인해
+ * 강제 종료된 경우), -1을 반환합니다. TID가 유효하지 않거나 호출 프로세스의
+ * 자식 프로세스가 아니거나, process_wait()가 이미
+ * 주어진 TID에 대해 process_wait()가 이미 성공적으로 호출된 경우, 기다리지 않고 즉시 -1을 반환합니다.
+ *
+ * 이 함수는 문제 2-2에서 구현될 예정입니다. 현재로서는 아무 작업도 수행하지 않습니다. */
 int
-process_wait (tid_t child_tid UNUSED) {
+process_wait (tid_t child_tid) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	/* XXX: 참고) process_wait(initd)가 호출되면 pintos가 종료됩니다. 따라서
+     * XXX:       process_wait를 구현하기 전에
+     * XXX:       여기에 무한 루프를 추가하는 것이 좋습니다. */
+
+	/* KDA'S CODE - start */
+	// if(child_tid == init_tid)
+	// {
+	// 	while(1)
+	// 	{
+
+	// 	}
+	// }
+
+	// main은 block or ready
+
+	// 아니면 무한 루프로 먼갈 체크 
+	while(1)
+	{
+		if(child_tid == init_tid)
+		{
+			break;
+		}
+	}
+	
+	// tid가 살아있을 동안 while 돌고?
+
+	/* KDA'S CODE - end*/
+
+	// 죽으면 스레드의 종료 상태를 반환 -> 유저 모드에서 exit 할 때 반환하는 값 
+	// 예외로 인해 강종이 -1 반환
 	return -1;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
 void
-/* ??? TID? ??? ??? ??? ?, ?? ???? ?? ??? ?????. ??
- * ??? ?? ??? ??(?, ??? ??
- * ?? ??? ??), -1? ?????. TID? ???? ??? ?? ?????
- * ?? ????? ????, process_wait()? ??
- * ??? TID? ?? process_wait()? ?? ????? ??? ??, ???? ?? ?? -1? ?????.
- *
- * ? ??? ?? 2-2?? ??? ?????. ????? ?? ??? ???? ????. */
 process_exit (void) {
 	struct thread *curr = thread_current ();
 	/* TODO: Your code goes here.
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
-	/* XXX: ??) process_wait(initd)? ???? pintos? ?????. ???
-     * XXX:       process_wait? ???? ??
-     * XXX:       ??? ?? ??? ???? ?? ????. */
-
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	process_cleanup ();
@@ -385,8 +420,60 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	process_activate (thread_current ());
 
+	/* KDA'S CODE - start: 명령어 파싱 */
+	// filesys_open 전에 파싱이 되어야 함
+	
+	// 함수를 나눠도 ㄱㅊ을듯
+
+	/* file_name 원본을 파싱하면 문자열이 깨질 가능성이 있기 때문에 복사해서 사용 
+	 * process_create_initd 참고 */  
+	char *fn_copy;
+
+	fn_copy = palloc_get_page (0);
+	
+	if (fn_copy == NULL)
+		return TID_ERROR;
+	
+	strlcpy (fn_copy, file_name, PGSIZE);
+
+	 /* file_name = 파일 이름의 첫 문자 주소 
+	  * token = argv[i]에 들어가는 잘라진 문자열(토큰) 하나
+	  * save_ptr = 주어진 문자열 file_name에서 다음 파싱 시작 위치를 기억하는 포인터 */ 
+	char *token, *save_ptr;
+ 
+	/* 한 문자당 한 토큰인 경우 -> len + 1, 
+	 *	-> 한 문자 당 한 토큰으로 마지막 \0까지 추가하려면 + 2 해줘야 함 */
+	size_t cmd_len = strlen(fn_copy) + 2;
+	char *argv[cmd_len];
+
+	int argc = 0;
+
+	/* 1. 처음에 strtok_r 실행해서 token 하나 받음
+	 * 2. token != NULL이면 반복 
+	 * 3. 반복 끝날 때마다 다시 strtok_r 호출해서 다음 token 받음 */
+
+	/* file_name에서 자른 첫 토큰을 token에 저장 */
+	token = strtok_r (fn_copy, " ", &save_ptr); 
+
+	/* 마지막 번지엔 NULL 넣어야 해서 argc < cmd_len - 1 */
+	while(token != NULL && argc < cmd_len - 1)
+	{
+		/* 토큰을 argv에 넣어줌 */
+		argv[argc] = token;
+
+		/* arguments count 수 증가 */
+		argc++;
+
+		/* 주어진 문자열 끝까지 파싱해 token이 NULL이 될 때까지 파싱 진행 */
+		token = strtok_r (NULL, " ", &save_ptr);
+	}
+	
+	argv[argc] = NULL;
+
+	/* KDA'S CODE - end */
+
 	/* Open executable file. */
-	// ??? pintos?? ??? run ??? ?? ???? ??? file_name? ???
+	// 여기에 pintos에서 알아서 run 명령어 다음 문자열을 파싱한 file_name이 들어감 
 	file = filesys_open (file_name);
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
@@ -468,8 +555,8 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 
 	/* Start address. */
-	// rip? ?? ????? main? ???? ?
-	// if_ = ??? ?? ?? ???
+	// rip가 실행 프로그램의 main을 가리키게 함 
+	// if_ = 스레드 안에 있는 구조체 
 	if_->rip = ehdr.e_entry;
 
 	/* TODO: Your code goes here.
@@ -477,19 +564,21 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* TODO: 코드를 여기에 작성하세요.
      * TODO: 인자 전달 기능을 구현하세요(project2/argument_passing.html 참조). */
 
-	/*
-	 * ???? ?? ?? = ???? ??? ???
-	 * ?? ???? ?? ???
-	 * ?? ?? ?? ??? argv[0]
-	 *
-	 * ??? ??? ?? ?? ???? ?? ???
-	 * rdi = char *argv, rsi = argc ??? ?? ???.
-	 *
-	 * ??? ??? ??? ?? ????
-	 * ????? main()?? ????.
-	 */
-	 
-	success = true;
+		
+	/* 
+	스레드에 인자 전달 = 스레드의 스택에 넣는다
+	높은 주소부터 낮은 주소로
+	스택 제일 낮은 주소에 argv[0]
+
+	스레드 구조체 안에 있는 레지스터에 저장하는 영역(아직 CPU에 저장 X)
+	rdi = char *argv
+	rsi = argc 
+
+	스택에 정보를 넣고 스택의 정보를 넣음
+	-> 이렇게 하면 main부터 실행된다!
+	*/
+
+   success = true;
 
 done:
 	/* We arrive here whether the load is successful or not. */
