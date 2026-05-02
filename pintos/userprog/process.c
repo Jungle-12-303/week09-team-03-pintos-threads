@@ -218,6 +218,7 @@ process_exec (void *f_name) {
 
 	/* Start switched process. */
 	/* 스위치된 프로세스를 시작합니다. */
+	/* ?? do_iret()? ?? ?? ??? ?????. */
 	do_iret (&_if);
 	NOT_REACHED ();
 }
@@ -466,6 +467,8 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 
 	/* Start address. */
+	// rip? ?? ????? main? ???? ?
+	// if_ = ??? ?? ?? ???
 	if_->rip = ehdr.e_entry;
 
 	/* TODO: Your code goes here.
