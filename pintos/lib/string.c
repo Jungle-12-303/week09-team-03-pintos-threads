@@ -100,6 +100,9 @@ memchr (const void *block_, int ch_, size_t size) {
    null pointer if C does not appear in STRING.  If C == '\0'
    then returns a pointer to the null terminator at the end of
    STRING. */
+/* STRING에서 C가 처음 나타나는 위치를 찾아 반환하며, 
+	STRING에 C가 나타나지 않으면 null 포인터를 반환합니다. 
+	C == '\0'인 경우, STRING의 끝을 나타내는 null 종결자 포인터를 반환합니다. */
 char *
 strchr (const char *string, int c_) {
 	char c = c_;
@@ -236,32 +239,76 @@ strtok_r (char *s, const char *delimiters, char **save_ptr) {
 
 	/* If S is nonnull, start from it.
 	   If S is null, start from saved position. */
+	/* S가 null이 아니면 S에서 시작합니다.
+    	S가 null이면 저장된 위치에서 시작합니다. */
 	if (s == NULL)
 		s = *save_ptr;
 	ASSERT (s != NULL);
 
 	/* Skip any DELIMITERS at our current position. */
+	/* 현재 위치의 구분 기호는 모두 건너뜁니다. */
+	/* s에 들어있는 문자가 delimiters 문자 중 하나와 동일한 문자라면 s의 위치 반환
+		-> 결국 s가 delimiters면 != NULL 조건 만족해서 while 내부 들어감
+		-> s++로 다음 문자로 넘어가 다시 strchr로 검사
+		=> delimiters가 아닌 문자를 만날 때까지 순회*/
 	while (strchr (delimiters, *s) != NULL) {
 		/* strchr() will always return nonnull if we're searching
 		   for a null byte, because every string contains a null
 		   byte (at the end). */
+		/* null 바이트를 검색할 때 strchr()은 항상 null이 아닌 값을 반환합니다.
+           모든 문자열은 (끝에) null 바이트를 포함하고 있기 때문입니다. 
+		   -> 모든 문자열은 끝에 null이 있어서 문자열의 끝까지 가게 되면 결국 strchr에서 마지막 null 주소를 반환하기 때문에
+		   항상 null이 아닌, null의 주소를 반환한다 */
+		/* 순회하다가 s 문자가 \0이라면 s를 save_ptr에 넣어 마지막 위치를 저장하고 NULL 반환 */
 		if (*s == '\0') {
 			*save_ptr = s;
 			return NULL;
 		}
 
+		/* s 문자가 delimiter 문자고 \0이 아니면 s를 다음 문자를 가리키게 해 계속 순회 */
 		s++;
 	}
 
 	/* Skip any non-DELIMITERS up to the end of the string. */
+	/* token = 현재 토큰의 첫 문자
+		-> 위에서 delimiters를 건너 뛰어서 s는 한 토큰의 시작 문자가 됨 */
 	token = s;
+
+	/* s 문자가 delimiters 문자가 아니라 NULL이 반환되면 while 반복 
+		-> s가 delimiters 문자가 아닌 동안 계속 반복 
+		-> 한 토큰을 바라보는 동안 반복 */
 	while (strchr (delimiters, *s) == NULL)
+	{
+		/* s를 다음 문자를 가리키게 함 
+			-> 한 토큰의 끝 문자까지 순회*/
 		s++;
+	}
+		
+	/* s가 \0이 아니라면 s에 \0를 넣고, save_ptr을 s의 다음 문자를 가리키게 함 
+		-> s는 delimiters를 가리키게 되면 while 빠져 나옴
+		-> delimiters 자리에 \0을 넣어서 여기까지가 한 토큰이라는 걸 명시함 */
 	if (*s != '\0') {
 		*s = '\0';
+		/* save_ptr을 다음 검사 시작 위치를 가리키게 함 
+			-> 나중에 다시 save_ptr 위치부터 delimiters인지 아닌지 검사해서
+			delimiters 건너 뛰고 다음 토큰 첫 문자 가리키게 한 후, 다음 토큰의 마지막 문자 다음
+			delimiters 자리에 \0 넣어서 다음 토큰도 한 토큰으로 잘라줌 */
 		*save_ptr = s + 1;
-	} else
+	} 
+	/* s가 \0 -> 주어진 문자열의 완전 끝까지 왔다면 
+		-> save_ptr을 현재 문자열로 만들어 다음 토큰 없음을 명시 */
+	else 
+	{
 		*save_ptr = s;
+	}
+
+	/* 한 토큰의 문자열 반환
+		ex) test 123 456\0
+		strtok_r 첫 호출(strtok_r (file_name, " ", &save_ptr)) -> token = test 반환, save_ptr = test 뒤의 \0 다음 문자 주소 
+		strtok_r 두번째 호출(strtok_r (NULL, " ", &save_ptr)) -> 첫 호출에서의 save_ptr부터 시작, token = 123 반환, save_ptr = 123 뒤의 \0 다음 문자 주소
+		strtok_r 세번째 호출 -> 두번째 호출에서의 save_ptr부터 시작, token = 456 반환, save_ptr = 456 뒤의 \0 주소
+		strtok_r 네번째 호출 -> 세번째 호출에서의 save_ptr부터 시작, token = NULL 
+		=> 밖에서 이 함수를 token = strtok_r()로 호출하면 token 변수에 반환되는 토큰들이 계속 덮어씌워짐*/
 	return token;
 }
 
