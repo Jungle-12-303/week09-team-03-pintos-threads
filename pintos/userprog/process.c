@@ -339,6 +339,7 @@ process_activate (struct thread *next) {
 
 /* We load ELF binaries.  The following definitions are taken
  * from the ELF specification, [ELF1], more-or-less verbatim.  */
+/* ELF 바이너리를 로드합니다. 다음 정의들은 ELF 사양서 [ELF1]에서 거의 그대로 인용한 것입니다. */
 
 /* ELF types.  See [ELF1] 1-2. */
 #define EI_NIDENT 16
@@ -358,6 +359,8 @@ process_activate (struct thread *next) {
 
 /* Executable header.  See [ELF1] 1-4 to 1-8.
  * This appears at the very beginning of an ELF binary. */
+/* 실행 파일 헤더. [ELF1] 1-4~1-8항을 참조하십시오.
+ * 이는 ELF 바이너리의 맨 처음에 나타납니다. */
 struct ELF64_hdr {
 	unsigned char e_ident[EI_NIDENT];
 	uint16_t e_type;
@@ -578,6 +581,25 @@ load (const char *file_name, struct intr_frame *if_) {
 	-> 이렇게 하면 main부터 실행된다!
 	*/
 
+	/* 1. 명령어들을 스택의 맨 위에 넣기 */
+	// for(int i = 0; i < argc; i++)
+	// {
+	// 	/* 제일 위인 rsp에서 넣을 값만큼 빼서 공간을 만들고 값을 넣는다 */
+	// 	size_t len = strlen(argv[i]) + 1;
+	// 	if_->rsp -= len;
+
+	// 	memcpy(if_->rsp, argv[i], len);
+	// }
+	/* 2. 8바이트 내림 워드 패딩 넣기 */
+	
+	/* 3. 각 문자열의 주소, NULL 포인터 센티널을 오른쪽 -> 왼쪽 순서로 스택에 넣기 */
+	
+	/* 4. 가짜 반환 주소 0 넣기 */
+
+	/* 5. x86-64 호출 규약에 따라 레지스터 초기화 */
+	if_->R.rdi = argc;
+	if_->R.rsi = *argv;
+
    success = true;
 
 done:
@@ -624,6 +646,10 @@ validate_segment (const struct Phdr *phdr, struct file *file) {
 	   it then user code that passed a null pointer to system calls
 	   could quite likely panic the kernel by way of null pointer
 	   assertions in memcpy(), etc. */
+	/* 페이지 0 매핑을 허용하지 않습니다.
+       페이지 0을 매핑하는 것은 좋지 않은 방법일 뿐만 아니라, 
+	   이를 허용할 경우, 시스템 호출에 null 포인터를 전달하는 사용자 코드가 memcpy() 등의 
+	   함수 내 null 포인터 검사(null pointer assertion)를 통해 커널을 패닉 상태로 만들 가능성이 매우 높습니다. */
 	if (phdr->p_vaddr < PGSIZE)
 		return false;
 
@@ -653,6 +679,16 @@ static bool install_page (void *upage, void *kpage, bool writable);
  *
  * Return true if successful, false if a memory allocation error
  * or disk read error occurs. */
+/* FILE의 오프셋 OFS 지점부터 시작하는 세그먼트를 주소 UPAGE에 로드합니다.
+ * 총 READ_BYTES + ZERO_BYTES 바이트의 가상 메모리가 다음과 같이 초기화됩니다:
+ *
+ * - UPAGE의 READ_BYTES 바이트는 FILE의 오프셋 OFS 지점부터 읽어야 합니다.
+ *
+ * - UPAGE + READ_BYTES 위치의 ZERO_BYTES 바이트는 0으로 초기화되어야 합니다.
+ *
+ * 이 함수에 의해 초기화된 페이지는 WRITABLE이 true인 경우 사용자 프로세스가 쓰기 가능해야 하며, 그렇지 않은 경우 읽기 전용이어야 합니다.
+ *
+ * 성공하면 true를 반환하고, 메모리 할당 오류나 디스크 읽기 오류가 발생하면 false를 반환합니다. */
 static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes, bool writable) {
@@ -696,15 +732,23 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 }
 
 /* Create a minimal stack by mapping a zeroed page at the USER_STACK */
+/* USER_STACK에 0으로 초기화된 페이지를 할당하여 최소 스택을 생성합니다 */
 static bool
 setup_stack (struct intr_frame *if_) {
 	uint8_t *kpage;
 	bool success = false;
 
+	/* 스택의 아래 주소를 계산 
+	 * -> 이 주소에 스택 페이지를 매핑 */
+	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
+
 	kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-	if (kpage != NULL) {
-		success = install_page (((uint8_t *) USER_STACK) - PGSIZE, kpage, true);
+	if (kpage != NULL) 
+	{
+		/* stack_bottom에 스택을 매핑하고 즉시 페이지를 할당 */
+		success = install_page (stack_bottom, kpage, true);
 		if (success)
+			/* 성공하면 rsp를 그에 맞게 설정 */
 			if_->rsp = USER_STACK;
 		else
 			palloc_free_page (kpage);
@@ -721,6 +765,13 @@ setup_stack (struct intr_frame *if_) {
  * with palloc_get_page().
  * Returns true on success, false if UPAGE is already mapped or
  * if memory allocation fails. */
+/* 사용자 가상 주소 UPAGE와 커널 가상 주소 KPAGE 간의 매핑을 페이지 테이블에 추가합니다.
+ * WRITABLE이 true인 경우, 사용자 프로세스는 해당 페이지를 수정할 수 있습니다;
+ * 그렇지 않은 경우, 읽기 전용입니다.
+ * UPAGE는 이미 매핑되어 있어서는 안 됩니다.
+ * KPAGE는 palloc_get_page()를 통해 사용자 풀에서 확보한 페이지여야 합니다.
+ * 성공 시 true를 반환하고, UPAGE가 이미 매핑되어 있거나
+ * 메모리 할당에 실패한 경우 false를 반환합니다. */
 static bool
 install_page (void *upage, void *kpage, bool writable) {
 	struct thread *t = thread_current ();
@@ -734,7 +785,8 @@ install_page (void *upage, void *kpage, bool writable) {
 /* From here, codes will be used after project 3.
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
-
+/* 이 부분부터는 프로젝트 3 이후에 사용될 코드입니다.
+ * 프로젝트 2에만 해당 기능을 구현하려면, 상단 블록에 구현하십시오. */
 static bool
 lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
@@ -788,12 +840,19 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (struct intr_frame *if_) {
 	bool success = false;
+
+	/* 스택의 아래 주소를 계산 
+	 * -> 이 주소에 스택 페이지를 매핑 */
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
 
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
+	/* TODO: stack_bottom에 스택을 매핑하고 즉시 페이지를 할당합니다.
+     * TODO: 성공하면 rsp를 그에 맞게 설정합니다.
+     * TODO: 해당 페이지를 스택 페이지로 표시해야 합니다. */
+    /* TODO: 코드를 여기에 작성하세요 */
 
 	return success;
 }

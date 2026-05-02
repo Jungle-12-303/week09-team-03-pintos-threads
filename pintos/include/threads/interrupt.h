@@ -37,6 +37,8 @@ struct gp_registers {
 struct intr_frame {
 	/* Pushed by intr_entry in intr-stubs.S.
 	   These are the interrupted task's saved registers. */
+	/* intr-stubs.S 파일의 intr_entry 함수에 의해 호출됨.
+       이는 인터럽트된 태스크의 저장된 레지스터들이다. */
 	struct gp_registers R;
 	uint16_t es;
 	uint16_t __pad1;
@@ -52,6 +54,8 @@ struct intr_frame {
 	uint64_t error_code;
 /* Pushed by the CPU.
    These are the interrupted task's saved registers. */
+/* CPU에 의해 푸시됨.
+   이는 인터럽트된 작업의 저장된 레지스터들이다. */
 	uintptr_t rip;
 	uint16_t cs;
 	uint16_t __pad5;
