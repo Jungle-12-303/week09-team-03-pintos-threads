@@ -525,12 +525,53 @@ load (const char *file_name, struct intr_frame *if_) {
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
 	 /* TODO: 여기에 코드를 작성한다.
 	  * TODO: 인자 전달을 구현한다. (project2/argument_passing.html 참고).  */
-		
 
+		/* 인자 마지막값부터 문자열 차례로 푸시 */
+		for (int i = argc-1; i >= 0; i--) {
+			/* \0 값까지 길이 계산 ex) foo = foo\0*/
+			int len = strlen(argv[i]) + 1;
+
+			if_->rsp -= len;
+
+			/* argv주소의 있는 문자열 if_rsp 주소로 복사 */
+			memcpy((void *) if_->rsp, argv[i], len);
+
+			argv[i] = (char *) if_->rsp;
+
+		}
+
+		/* 단어 정렬 삽입 */
+		/* 8의 배수가 될때까지 -1 씩 내려가면서 0 으로 채워서 rsp의 주소 */
+		while (if_->rsp % 8 != 0) {
+			if_ -> rsp -= 1;
+
+			*(char *) if_->rsp = 0;
+		}
+
+		/* NULL 포인터 삽입 */
+		if_-> rsp -= sizeof(char *);
+
+		*(char **) if_->rsp = NULL;
+
+		/* 문자열 주소값 스택에 push  */
+		for (int i = argc-1; i >= 0; i--) {
+
+			/* 주소값크기 8바이트 만큼 빼서 공간확보  */
+			if_-> rsp -= sizeof(char *);
+
+			*(char **) if_->rsp = argv[i];
+			
+		}
+
+		uintptr_t start = if_->rsp;
+		/* 마지막 가짜 반환 주소 0 push */
+		if_->rsp -= sizeof(char *);
+		/* char * 타입의 주소를 저장하기 위해 이중 포인터 선언 */
+		*(void **) if_->rsp = NULL;
 
 		// /* HOSEOK'S CODE */
-		// if_->R.rsi = 인자개수;
-		// if_->R.rdi = 첫문자열주소;
+		if_->R.rdi = argc;
+		if_->R.rsi = start;
 		/* HOSEOK'S CODE */
 	success = true;
 
