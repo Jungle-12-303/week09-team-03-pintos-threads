@@ -462,6 +462,14 @@ do_iret (struct intr_frame *tf) {
    It's not safe to call printf() until the thread switch is
    complete.  In practice that means that printf()s should be
    added at the end of the function. */
+/* 새 스레드의 페이지 테이블을 활성화하여 스레드를 전환하고, 이전 스레드가 종료 중이라면 이를 종료합니다.
+
+   이 함수가 호출될 때, 우리는 방금 스레드 PREV에서 전환한 상태이며,
+   새 스레드는 이미 실행 중이고, 인터럽트는 여전히 비활성화되어 있습니다.
+   
+   스레드 전환이 완료될 때까지 printf()를 호출하는 것은 안전하지 않습니다.
+   실제로 이는 printf() 호출을 함수의 마지막에 추가해야 함을 의미합니다. */
+
 static void
 thread_launch (struct thread *th) {
 	uint64_t tf_cur = (uint64_t) &running_thread ()->tf;
@@ -473,6 +481,10 @@ thread_launch (struct thread *th) {
 	 * and then switching to the next thread by calling do_iret.
 	 * Note that, we SHOULD NOT use any stack from here
 	 * until switching is done. */
+	/* 주요 스레드 전환 로직.
+     * 먼저 전체 실행 컨텍스트를 intr_frame에 복원하고,
+     * do_iret를 호출하여 다음 스레드로 전환합니다.
+     * 여기서부터 전환이 완료될 때까지는 어떤 스택도 사용해서는 안 됩니다. */
 	__asm __volatile (
 			/* Store registers that will be used. */
 			"push %%rax\n"
