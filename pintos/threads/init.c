@@ -245,6 +245,10 @@ run_task (char **argv) {
 		run_test (task);
 	} else {
 		process_wait (process_create_initd (task));
+
+		/*이거랑 똑같은함수*/
+		/*tid_t tid = process_create_initd(task);
+		process_wait(tid);*/
 	}
 #else
 	run_test (task);
@@ -254,6 +258,7 @@ run_task (char **argv) {
 
 /* Executes all of the actions specified in ARGV[]
    up to the null pointer sentinel. */
+/* ARGV[] 안에 지정된 모든 동작을 널 포인터 센티널까지 실행한다.*/
 static void
 run_actions (char **argv) {
 	/* An action. */
@@ -293,6 +298,8 @@ run_actions (char **argv) {
 				PANIC ("action `%s' requires %d argument(s)", *argv, a->argc - 1);
 
 		/* Invoke action and advance. */
+		/* 동작을 호출하고 다음으로 진행한다. */
+
 		a->function (argv);
 		argv += a->argc;
 	}

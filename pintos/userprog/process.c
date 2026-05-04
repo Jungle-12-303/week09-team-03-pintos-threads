@@ -569,6 +569,8 @@ load (const char *file_name, struct intr_frame *if_) {
 		/* char * 타입의 주소를 저장하기 위해 이중 포인터 선언 */
 		*(void **) if_->rsp = NULL;
 
+		hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
+
 		// /* HOSEOK'S CODE */
 		if_->R.rdi = argc;
 		if_->R.rsi = start;
