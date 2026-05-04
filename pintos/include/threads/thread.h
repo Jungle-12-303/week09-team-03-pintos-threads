@@ -88,6 +88,12 @@ typedef int tid_t;
 struct thread {
 	/* Owned by thread.c. */
 	tid_t tid;                          /* Thread identifier. */
+
+	/* 부모 스레드*/
+	/* SONNY'S CODE START */
+	tid_t* p_tid;						/* 부모 스레드 tid -> 부모 스레드 구조체 주소랑 같음(예상) -SONNY- */
+	/* SONNY'S CODE END */
+
 	enum thread_status status;          /* Thread state. */
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */

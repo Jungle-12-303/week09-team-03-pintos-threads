@@ -8,6 +8,10 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 
+/* SONNY'S CODE */
+// #include "../include/lib/user/syscall.h"
+/* SONNY'S CODE */
+
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
@@ -42,5 +46,21 @@ void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
 	printf ("system call!\n");
+
+	/* SONNY'S CODE */
+	switch ((int)(f->R.rax))
+	{
+	case SYS_WRITE: /* write -SONNY- */
+		putbuf ((char*)(f->R.rsi), (size_t)(f->R.rdx));
+		break;
+
+	case SYS_EXIT:
+		exit ();
+	
+	default:
+		break;
+	}
+	/* SONNY'S CODE */
+	
 	thread_exit ();
 }

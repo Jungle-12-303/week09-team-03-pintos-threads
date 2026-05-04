@@ -168,6 +168,10 @@ process_exec (void *f_name) {
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
 	 * it stores the execution information to the member. */
+	/* 현재 thread 구조체에 포함된 intr_frame 멤버를 여기서 사용하면 안 된다.
+	 * 그 이유는 현재 스레드가 스케줄링으로 인해 CPU에서 내려갈 때,
+	 * 즉 context switch / reschedule될 때,
+	 * 현재 실행 상태 정보가 그 intr_frame 멤버에 저장되기 때문이다.*/
 	struct intr_frame _if;
 	_if.ds = _if.es = _if.ss = SEL_UDSEG;
 	_if.cs = SEL_UCSEG;
@@ -204,10 +208,26 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+
+	/* 자식 스레드가 종료될 때 언블락 -SONNY- */
+	/* 종료될 때는 exit()함수 실행되었을 때? -SONNY- */
+	/* SONNY'S CODE START */
+	// intr_disable();
+	// thread_block();
+	// intr_enable();
+
+	
+
+	/* SONNY'S CODE END */
+
+	
+	
+
 	return -1;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
+/* 프로세스를 종료한다. 이 함수는 thread_exit()에 의해 호출된다. */
 void
 process_exit (void) {
 	struct thread *curr = thread_current ();
@@ -231,6 +251,8 @@ process_cleanup (void) {
 	uint64_t *pml4;
 	/* Destroy the current process's page directory and switch back
 	 * to the kernel-only page directory. */
+	/* 현재 프로세스의 페이지 디렉터리를 파괴하고,
+	 * 커널 전용 페이지 디렉터리로 다시 전환한다. */
 	pml4 = curr->pml4;
 	if (pml4 != NULL) {
 		/* Correct ordering here is crucial.  We must set
@@ -240,6 +262,12 @@ process_cleanup (void) {
 		 * directory before destroying the process's page
 		 * directory, or our active page directory will be one
 		 * that's been freed (and cleared). */
+		/* 여기서 올바른 순서가 매우 중요하다. 페이지 디렉터리를 전환하기 전에
+		 * cur->pagedir를 NULL로 설정해야 한다. 그래야 타이머 인터럽트가 발생해도
+		 * 프로세스 페이지 디렉터리로 다시 전환하지 않는다.
+		 * 프로세스의 페이지 디렉터리를 파괴하기 전에 기본 페이지 디렉터리를
+		 * 활성화해야 한다. 그렇지 않으면 현재 활성화된 페이지 디렉터리가
+		 * 이미 해제되고 지워진 것이 될 수 있다. */
 		curr->pml4 = NULL;
 		pml4_activate (NULL);
 		pml4_destroy (pml4);
@@ -248,6 +276,8 @@ process_cleanup (void) {
 
 /* Sets up the CPU for running user code in the nest thread.
  * This function is called on every context switch. */
+/* 다음 스레드에서 사용자 코드를 실행할 수 있도록 CPU를 설정한다.
+ * 이 함수는 매 컨텍스트 스위치마다 호출된다. */
 void
 process_activate (struct thread *next) {
 	/* Activate thread's page tables. */
@@ -320,6 +350,10 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
  * Stores the executable's entry point into *RIP
  * and its initial stack pointer into *RSP.
  * Returns true if successful, false otherwise. */
+/* FILE_NAME으로부터 ELF 실행 파일을 현재 스레드에 로드한다.
+ * 실행 파일의 진입점을 *RIP에 저장하고,
+ * 초기 스택 포인터를 *RSP에 저장한다.
+ * 성공하면 true를, 실패하면 false를 반환한다. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
 	struct thread *t = thread_current ();
@@ -416,6 +450,8 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
+	
+	
 
 	success = true;
 
