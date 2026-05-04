@@ -271,6 +271,13 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	/* XXX: 힌트)  process_wait(initd)를 하면 pintos가 종료되므로, 
+	              process_wait를 구현하기 전에는 여기에 무한 루프를 추가하는 것을 권장합니다. */
+
+	/* 자식 스레드가 종료될 때 언블락? -SONNY- */
+	/* 종료될 때는 exit()함수 실행되었을 때? -SONNY- */
+	/* 최종은 락걸어서 wait -SONNY- */
+	/* SONNY'S CODE START */
 	sema_init (&wait_child_thread, 0);
 	sema_down (&wait_child_thread);
 	return -1;
@@ -488,14 +495,10 @@ load (const char *file_name, struct intr_frame *if_) {
 	// run 이후로 파싱된 file_name에서 또 파싱하여 argv 중 0번지에 있는 값으로 file을 열어야 함
 	file = filesys_open (argv[0]);
 
-	/* KDA'S CODE - start */
-	strlcpy (t->name, argv[0], sizeof t->name);
+		/* JANE'S CODE */
+	strlcpy(t->name, argv[0], sizeof t->name);
+	/* JANE'S CODE */
 	
-	// 여기에 pintos에서 알아서 run 명령어 다음 문자열을 파싱한 file_name이 들어감 
-	//file = filesys_open (file_name);
-	
-	/* KDA'S CODE - end */
-
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
