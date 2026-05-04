@@ -414,102 +414,78 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
  * 성공하면 true를, 그렇지 않으면 false를 반환합니다. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
-//NICK 
-	//printf("[trace] load: %s\n", file_name);
-//NICK 
-
 	struct thread *t = thread_current ();
 	struct ELF ehdr;
 	struct file *file = NULL;
 	off_t file_ofs;
 	bool success = false;
 	int i;
+	/* HOSEOK'S CODE */
+
+	/* stroke.r 함수 쓸때 공백기준자르고 그다음 문자열 주소 기억하기 위한 변수 */
+	char *save_ptr;
+
+	/* 받아온 파일 복사본 stroke.r 함수 쓸때 원본 문자열 없애서 만듬 */
 	char *fn_copy = NULL;
-	char **argv = NULL;
-	uintptr_t *user_argv = NULL;
-	size_t argv_page_cnt = 0;
-	size_t user_argv_page_cnt = 0;
+
+	/* 자른 토큰들 저장변수 */
+	char *token;
+
+	/* 인자개수 변수*/
+	int argc = 0;
+
+	/* 첫번째 문자열의 시작주소 나타내는 변수*/
+	char *argv[64];
+	/* HOSEOK'S CODE */
+	
+	/* 토큰화 반복문 카운팅 변수 */
+	int cnt = 0;
 
 	/* Allocate and activate page directory. */
-	/* 페이지 디렉터리를 할당하고 활성화합니다. */
+	/* 페이지 디렉터리를 할당하고 활성화한다. */
 	t->pml4 = pml4_create ();
 	if (t->pml4 == NULL)
 		goto done;
 	process_activate (thread_current ());
+ 
+	/*palloc 해서 fn_copy 만들기 */
+	/* 1. fn_copy 메모리 할당 */
+	fn_copy = palloc_get_page(0);
 
-	/* KDA'S CODE - start: 명령어 파싱 */
-	// filesys_open 전에 파싱이 되어야 함
-	
-	// 함수를 나눠도 ㄱㅊ을듯
-
-	/* file_name 원본을 파싱하면 문자열이 깨질 가능성이 있기 때문에 복사해서 사용 
-	 * process_create_initd 참고 */  
-	fn_copy = palloc_get_page (0);
-	
 	if (fn_copy == NULL)
 		goto done;
-	
+
+	/* 2. file_name을 fn_copy에 복사 */
 	strlcpy (fn_copy, file_name, PGSIZE);
 
-	 /* file_name = 파일 이름의 첫 문자 주소 
-	  * token = argv[i]에 들어가는 잘라진 문자열(토큰) 하나
-	  * save_ptr = 주어진 문자열 file_name에서 다음 파싱 시작 위치를 기억하는 포인터 */ 
-	char *token, *save_ptr;
- 
-	/* 한 문자당 한 토큰인 경우 -> len + 1, 
-	 *	-> 한 문자 당 한 토큰으로 마지막 \0까지 추가하려면 + 2 해줘야 함 */
-	size_t cmd_len = strlen(fn_copy) + 2;
-	size_t argv_bytes = cmd_len * sizeof *argv;
-	argv_page_cnt = DIV_ROUND_UP (argv_bytes, PGSIZE);
-	argv = palloc_get_multiple (0, argv_page_cnt);
-	if (argv == NULL)
-		goto done;
 
-	int argc = 0;
+	/* strtok_r 의 반환값은 문자열을 잘라서 토큰의 시작 주소를 반환함 */
+	/* 3. fn_copy를 strtok_r로 토큰화 */
+	for (token = strtok_r(fn_copy, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr)) {
+		
+		argv[cnt] = token;
 
-	/* 1. 처음에 strtok_r 실행해서 token 하나 받음
-	 * 2. token != NULL이면 반복 
-	 * 3. 반복 끝날 때마다 다시 strtok_r 호출해서 다음 token 받음 */
+		cnt++;
 
-	/* file_name에서 자른 첫 토큰을 token에 저장 */
-	token = strtok_r (fn_copy, " ", &save_ptr); 
-
-	/* 마지막 번지엔 NULL 넣어야 해서 argc < cmd_len - 1 */
-	while(token != NULL && argc < cmd_len - 1)
-	{
-		/* 토큰을 argv에 넣어줌 */
-		argv[argc] = token;
-
-		/* arguments count 수 증가 */
 		argc++;
-
-		/* 주어진 문자열 끝까지 파싱해 token이 NULL이 될 때까지 파싱 진행 */
-		token = strtok_r (NULL, " ", &save_ptr);
 	}
-	
+	/* 사용자 스택 규칙에 따라 마지막 값 NULL 넣어주  */
 	argv[argc] = NULL;
 
-	/* KDA'S CODE - end */
+
 
 	/* Open executable file. */
-	// run 이후로 파싱된 file_name에서 또 파싱하여 argv 중 0번지에 있는 값으로 file을 열어야 함
+	/* 실행 파일을 연다. */
+	/*filesys_open(argv[0])*/
+
 	file = filesys_open (argv[0]);
-
-	/* KDA'S CODE - start */
-	strlcpy (t->name, argv[0], sizeof t->name);
-	
-	// 여기에 pintos에서 알아서 run 명령어 다음 문자열을 파싱한 file_name이 들어감 
-	//file = filesys_open (file_name);
-	
-	/* KDA'S CODE - end */
-
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
 
 	/* Read and verify executable header. */
-	/* 실행 파일 헤더를 읽고 검증합니다. */
+	/* 실행 파일 헤더를 읽고 검증한다. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
 			|| memcmp (ehdr.e_ident, "\177ELF\2\1\1", 7)
 			|| ehdr.e_type != 2
@@ -579,125 +555,73 @@ load (const char *file_name, struct intr_frame *if_) {
 	}
 
 	/* Set up stack. */
+	/* 여기서 유저 스택공간 할당해줌 */
 	if (!setup_stack (if_))
 		goto done;
-
+	
 	/* Start address. */
-	// rip가 실행 프로그램의 main을 가리키게 함 
-	// if_ = 스레드 안에 있는 구조체 
 	if_->rip = ehdr.e_entry;
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-	/* TODO: 코드를 여기에 작성하세요.
-     * TODO: 인자 전달 기능을 구현하세요(project2/argument_passing.html 참조). */
+	 /* TODO: 여기에 코드를 작성한다.
+	  * TODO: 인자 전달을 구현한다. (project2/argument_passing.html 참고).  */
 
-	/* KDA'S CODE - start */
-	/* 
-	스레드에 인자 전달 = 스레드의 스택에 넣는다
-	높은 주소부터 낮은 주소로
-	스택 제일 낮은 주소에 argv[0]
+		/* 인자 마지막값부터 문자열 차례로 푸시 */
+		for (int i = argc-1; i >= 0; i--) {
+			/* \0 값까지 길이 계산 ex) foo = foo\0*/
+			int len = strlen(argv[i]) + 1;
 
-	스레드 구조체 안에 있는 레지스터에 저장하는 영역(아직 CPU에 저장 X)
-	rdi = char *argv
-	rsi = argc 
+			if_->rsp -= len;
 
-	스택에 정보를 넣고 스택의 정보를 넣음
-	-> 이렇게 하면 main부터 실행된다!
-	*/
-	
-	uintptr_t argv_rsp;
-	size_t user_argv_bytes = argc * sizeof *user_argv;
-	user_argv_page_cnt = DIV_ROUND_UP (user_argv_bytes, PGSIZE);
-	user_argv = palloc_get_multiple (0, user_argv_page_cnt);
-	if (user_argv == NULL)
-		goto done;
+			/* argv주소의 있는 문자열 if_rsp 주소로 복사 */
+			memcpy((void *) if_->rsp, argv[i], len);
 
-	/* 1. 명령어들을 스택의 맨 위에 넣기 */
-	/* argv[argc] = NULL 이기 때문에 argc - 1부터 시작 */
-	for(int i = argc - 1; i >= 0; i--)
-	{
-		/* strlen(argv[i]) + 1을 크기로 잡아야 토큰 문자열 마지막 \0까지 넣을 수 있음*/
-		size_t len = strlen(argv[i]) + 1;
-		
-		/* 제일 위인 rsp에서 넣을 값만큼 빼서 공간을 만들고 값을 넣는다 */
-		if_->rsp -= len;
-		
-		/* 아래에서 push한 문자열 시작 위치를 push 해주기 위해 따로 저장 */
-		user_argv[i] = if_->rsp;
+			argv[i] = (char *) if_->rsp;
 
-		/* 값을 크기만큼 복사해서 rsp에 넣는다 */
-		memcpy((void *)if_->rsp, argv[i], len);
-	}
+		}
 
-	/* 2. 8바이트 내림 워드 패딩 넣기 */
-	// 기존 rsp 값 저장 
-	uintptr_t rsp_old = if_->rsp;
+		/* 단어 정렬 삽입 */
+		/* 8의 배수가 될때까지 -1 씩 내려가면서 0 으로 채워서 rsp의 주소 */
+		while (if_->rsp % 8 != 0) {
+			if_ -> rsp -= 1;
 
-	// 8의 배수로 내림
-	if_->rsp &= ~7;
+			*(char *) if_->rsp = 0;
+		}
 
-	// 기존 값에서 내린 값의 차로 패딩 사이즈 구함 
-	size_t padding_size = rsp_old - if_->rsp;
+		/* NULL 포인터 삽입 */
+		if_-> rsp -= sizeof(char *);
 
-	if(padding_size > 0)
-	{
-		// memset으로 rsp에서 패딩 사이즈만큼 0으로 채움 
-		memset((void *)if_->rsp, 0 , padding_size);
-	}
+		*(char **) if_->rsp = NULL;
 
-	/* 3. NULL 포인터 센티널 넣기 */
-	if_->rsp -= 8; 
-	
-	memset((void *)if_->rsp, 0, 8);
+		/* 문자열 주소값 스택에 push  */
+		for (int i = argc-1; i >= 0; i--) {
 
-	//memcpy(if_->rsp, 0, 8);
-	// 우연히 맞는 코드, 원래 로직이라면 이 코드가 아님
-	// memset(if_->rsp, NULL, 8); 
-	
-	/* 4. 문자열 시작 주소 넣기 */
-	for(int i = argc - 1; i >= 0; i--)
-	{
-		/* 주소는 8바이트로 크기 고정 */
-		if_->rsp -= 8;
-		
-		/* 값을 크기만큼 복사해서 rsp에 넣는다 */
-		memcpy((void *)if_->rsp, &user_argv[i], 8);
-	}
-	
-	/* 아래에서 push한 문자열 시작 주소를 push 해주기 위해 따로 저장 */
-	argv_rsp = if_->rsp;
+			/* 주소값크기 8바이트 만큼 빼서 공간확보  */
+			if_-> rsp -= sizeof(char *);
 
-	/* 5. 가짜 반환 주소 0 넣기 */
-	if_->rsp -= 8;
-	memset((void *)if_->rsp, 0 , 8);
+			*(char **) if_->rsp = argv[i];
+			
+		}
 
-	//hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
+		uintptr_t start = if_->rsp;
+		/* 마지막 가짜 반환 주소 0 push */
+		if_->rsp -= sizeof(char *);
+		/* char * 타입의 주소를 저장하기 위해 이중 포인터 선언 */
+		*(void **) if_->rsp = NULL;
 
-	/* 6. x86-64 호출 규약에 따라 레지스터 초기화 */
-	if_->R.rdi = argc;
+		hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
 
-	/* argv 배열의 시작 주소를 넣어야 함 *argv는 결국 argv[0]의 시작 주소가 됨 */
-	if_->R.rsi = argv_rsp; // 얜 커널 스택의 배열 주소 -> 유저 스택에 push했던 문자열들의 주소를 넣어야 함
-	
-	/* KDA'S CODE - end */
+		// /* HOSEOK'S CODE */
+		if_->R.rdi = argc;
+		if_->R.rsi = start;
+		/* HOSEOK'S CODE */
+	success = true;
 
-   success = true;
-   
 done:
 	/* We arrive here whether the load is successful or not. */
 	file_close (file);
-
-	if (user_argv != NULL)
-		palloc_free_multiple (user_argv, user_argv_page_cnt);
-
-	if (argv != NULL)
-		palloc_free_multiple (argv, argv_page_cnt);
-
-	if (fn_copy != NULL) {
-		palloc_free_page (fn_copy);
-	}
-
+	palloc_free_page(fn_copy);
 	return success;
 }
 
