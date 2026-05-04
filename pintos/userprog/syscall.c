@@ -45,7 +45,7 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	printf ("system call!\n");
+	// printf ("system call!\n");
 
 	/* SONNY'S CODE */
 	switch ((int)(f->R.rax))
@@ -55,11 +55,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 
 	case SYS_EXIT:
+		thread_exit ();
+		break;
 	
 	default:
 		break;
 	}
 	/* SONNY'S CODE */
-	
-	thread_exit ();
+
 }

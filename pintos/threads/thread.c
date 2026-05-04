@@ -292,8 +292,10 @@ thread_tid (void) {
 	return thread_current ()->tid;
 }
 
-/* Deschedules the current thread and destroys it.  Never
-   returns to the caller. */
+/* Deschedules the current thread and destroys it.
+   Never returns to the caller. */
+/* 현재 thread를 스케줄 대상에서 빼고 제거한다.
+   호출한 곳으로는 절대 돌아오지 않는다(더 이상 CPU를 받을 수 없게 되고, 나중에 정리). */
 void
 thread_exit (void) {
 	ASSERT (!intr_context ());
@@ -304,6 +306,8 @@ thread_exit (void) {
 
 	/* Just set our status to dying and schedule another process.
 	   We will be destroyed during the call to schedule_tail(). */
+	/* 그냥 우리의 상태를 dying으로 설정하고, 다른 프로세스가 실행되도록 스케줄한다.
+	   우리는 나중에 schedule_tail()이 호출되는 동안 파괴될 것이다. */
 	intr_disable ();
 	do_schedule (THREAD_DYING);
 	NOT_REACHED ();

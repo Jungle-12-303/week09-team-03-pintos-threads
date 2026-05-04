@@ -18,6 +18,11 @@
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
+/* SONNY'S CODE */
+#include "threads/synch.h"
+/* SONNY'S CODE */
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -26,6 +31,11 @@ static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
+
+
+/* SONNY'S CODE */
+static struct semaphore wait_child_thread;
+/* SONNY'S CODE */
 
 /* General process initializer for initd and other process. */
 static void
@@ -219,7 +229,6 @@ process_exec (void *f_name) {
  *
  * This function will be implemented in problem 2-2.  For now, it
  * does nothing. */
-
 /* 스레드 TID가 종료될 때까지 기다리고, 그 종료 상태를 반환한다.
  * 커널에 의해 종료된 경우, 즉 예외 때문에 종료된 경우에는 -1을 반환한다.
  * TID가 유효하지 않거나, 호출한 프로세스의 자식이 아니거나,
@@ -238,15 +247,10 @@ process_wait (tid_t child_tid UNUSED) {
 	/* 자식 스레드가 종료될 때 언블락 -SONNY- */
 	/* 종료될 때는 exit()함수 실행되었을 때? -SONNY- */
 	/* SONNY'S CODE START */
-	// intr_disable();
-	// thread_block();
-	// intr_enable();
-
+	sema_init (&wait_child_thread, 0);
+	sema_down (&wait_child_thread);
 
 	/* SONNY'S CODE END */
-
-	
-	while (true);	
 
 	return -1;
 }
@@ -260,6 +264,11 @@ process_exit (void) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
+
+	/* SONNY'S CODE */
+	printf("%s: exit(%d)\n",(curr->name), (int)(curr->tf.R.rax));
+	sema_up (&wait_child_thread);
+	/* SONNY'S CODE */
 
 	process_cleanup ();
 }
@@ -525,12 +534,10 @@ load (const char *file_name, struct intr_frame *if_) {
 				break;
 		}
 	
-	/*
-	%rdi = argc
-  %rsi = argv
-	%rip = _start 주소
-	%rsp = 준비된 스택 주소
-	*/
+	/* %rdi = argc
+	   %rsi = argv
+	   %rip = _start 주소
+	   %rsp = 준비된 스택 주소 */
 
 	}
 	/* Set up stack. */
@@ -589,9 +596,9 @@ load (const char *file_name, struct intr_frame *if_) {
 		/* char * 타입의 주소를 저장하기 위해 이중 포인터 선언 */
 		*(void **) if_->rsp = NULL;
 
-		hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
+		// hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
 
-		// /* HOSEOK'S CODE */
+		/* HOSEOK'S CODE */
 		if_->R.rdi = argc;
 		if_->R.rsi = start;
 		/* HOSEOK'S CODE */
