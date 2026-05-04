@@ -71,6 +71,9 @@ snprintf (char *buffer, size_t buf_size, const char *format, ...) {
    In the kernel, the console is both the video display and first
    serial port.
    In userspace, the console is file descriptor 1. */
+/* 형식화된 출력을 콘솔에 기록한다.
+   커널에서 콘솔은 비디오 디스플레이와 첫 번째 시리얼 포트 모두를 의미한다.
+   사용자 공간에서 콘솔은 파일 디스크립터 1이다. */
 int
 printf (const char *format, ...) {
 	va_list args;
@@ -82,7 +85,7 @@ printf (const char *format, ...) {
 
 	return retval;
 }
-
+
 /* printf() formatting internals. */
 
 /* A printf() conversion. */

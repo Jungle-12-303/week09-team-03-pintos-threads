@@ -14,6 +14,7 @@
 #include "threads/init.h"
 #include "threads/interrupt.h"
 #include "threads/palloc.h"
+#include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
@@ -26,6 +27,7 @@ static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
+static struct semaphore wait_child_thread;
 
 /* General process initializer for initd and other process. */
 /* initd 및 기타 프로세스를 위한 일반 프로세스 초기화 프로그램. */
@@ -265,23 +267,12 @@ process_exec (void *f_name) {
  *
  * 이 함수는 문제 2-2에서 구현될 예정입니다. 현재로서는 아무 작업도 수행하지 않습니다. */
 int
-process_wait (tid_t child_tid) {
+process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	while(true){
-		thread_yield();
-	}
-
-	struct thread *curr = thread_current();
-
-	while(true)
-	{
-		if(curr->exit_code != NULL)
-		{
-			break;
-		}
-	}
+	sema_init (&wait_child_thread, 0);
+	sema_down (&wait_child_thread);
 	return -1;
 }
 
@@ -298,7 +289,8 @@ process_exit (void) {
      * TODO: project2/process_termination.html).
      * TODO: 여기에서 프로세스 리소스 정리를 구현하는 것이 좋습니다. */
 
-	printf("%s: exit(%d)\n", curr->name, curr->exit_code);
+	printf("%s: exit(%d)\n", curr->name, (int) curr->tf.R.rdi);
+	sema_up (&wait_child_thread);
 
 	process_cleanup ();
 }
