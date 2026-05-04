@@ -176,6 +176,20 @@ thread_print_stats (void) {
    The code provided sets the new thread's `priority' member to
    PRIORITY, but no actual priority scheduling is implemented.
    Priority scheduling is the goal of Problem 1-3. */
+/* 주어진 초기 PRIORITY를 가진 NAME이라는 새 커널 스레드를 생성한다.
+   이 스레드는 AUX를 인자로 넘겨 FUNCTION을 실행하며,
+   준비 큐에 추가된다. 새 스레드의 식별자를 반환하고,
+   생성에 실패하면 TID_ERROR를 반환한다.
+
+   thread_start()가 호출된 이후라면, 새 스레드는 thread_create()가
+   반환되기 전에 스케줄될 수 있다. 심지어 thread_create()가 반환되기 전에
+   종료될 수도 있다. 반대로, 원래 스레드는 새 스레드가 스케줄되기 전까지
+   얼마든지 실행될 수 있다. 실행 순서를 보장해야 한다면 세마포어나
+   다른 형태의 동기화를 사용하라.
+
+   제공된 코드는 새 스레드의 `priority' 멤버를 PRIORITY로 설정하지만,
+   실제 우선순위 스케줄링은 구현되어 있지 않다.
+   우선순위 스케줄링은 문제 1-3의 목표이다. */
 tid_t
 thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
@@ -195,6 +209,8 @@ thread_create (const char *name, int priority,
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
+	/* 스케줄되면 kernel_thread를 호출한다.
+ 	 * 참고) rdi는 첫 번째 인자이고, rsi는 두 번째 인자이다. */
 	t->tf.rip = (uintptr_t) kernel_thread;
 	t->tf.R.rdi = (uint64_t) function;
 	t->tf.R.rsi = (uint64_t) aux;
@@ -277,6 +293,8 @@ thread_tid (void) {
 
 /* Deschedules the current thread and destroys it.  Never
    returns to the caller. */
+/* 현재 thread를 스케줄 대상에서 빼고 제거한다.
+   호출한 곳으로는 절대 돌아오지 않는다(더 이상 CPU를 받을 수 없게 되고, 나중에 정리). */
 void
 thread_exit (void) {
 	ASSERT (!intr_context ());
@@ -287,6 +305,8 @@ thread_exit (void) {
 
 	/* Just set our status to dying and schedule another process.
 	   We will be destroyed during the call to schedule_tail(). */
+	/* 그냥 우리의 상태를 dying으로 설정하고, 다른 프로세스가 실행되도록 스케줄한다.
+	   우리는 나중에 schedule_tail()이 호출되는 동안 파괴될 것이다. */
 	intr_disable ();
 	do_schedule (THREAD_DYING);
 	NOT_REACHED ();
@@ -425,6 +445,11 @@ next_thread_to_run (void) {
 }
 
 /* Use iretq to launch the thread */
+/* 이 함수는 저장된 인터럽트 프레임 tf를 CPU 레지스터와 스택에 복원한 뒤,
+   iretq로 인터럽트/예외 처리 이전의 실행 흐름으로 돌아가는 코드
+
+ * 보통 커널에서 유저 프로그램으로 진입하거나,
+   인터럽트 처리 후 원래 실행하던 컨텍스트로 복귀할 때 사용 -SONNY- */
 void
 do_iret (struct intr_frame *tf) {
 	__asm __volatile(
@@ -537,6 +562,10 @@ thread_launch (struct thread *th) {
  * This function modify current thread's status to status and then
  * finds another thread to run and switches to it.
  * It's not safe to call printf() in the schedule(). */
+/* 새 프로세스를 스케줄한다. 진입 시점에는 인터럽트가 꺼져 있어야 한다.
+ * 이 함수는 현재 스레드의 상태를 status로 변경한 다음,
+ * 실행할 다른 스레드를 찾아 그 스레드로 전환한다.
+ * schedule() 안에서 printf()를 호출하는 것은 안전하지 않다. */
 static void
 do_schedule(int status) {
 	ASSERT (intr_get_level () == INTR_OFF);
@@ -577,6 +606,12 @@ schedule (void) {
 		   currently used by the stack.
 		   The real destruction logic will be called at the beginning of the
 		   schedule(). */
+		/* 전환되어 나온 이전 스레드가 종료 중이라면, 그 스레드의 struct thread를
+   		   파괴한다. thread_exit()이 자기 자신이 밟고 있는 발판을 빼버리는 일이
+		   없도록 이 작업은 늦게 수행되어야 한다.
+		 * 현재 페이지가 스택으로 사용되고 있기 때문에 여기서는 페이지 해제 요청만
+		   큐에 넣는다.
+		 * 실제 파괴 로직은 schedule()의 시작 부분에서 호출된다. */
 		if (curr && curr->status == THREAD_DYING && curr != initial_thread) {
 			ASSERT (curr != next);
 			list_push_back (&destruction_req, &curr->elem);
