@@ -36,6 +36,7 @@ static __inline int64_t syscall (uint64_t num_, uint64_t a1_, uint64_t a2_,
 
 /* Invokes syscall NUMBER, passing argument ARG0, and returns the
    return value as an `int'. */
+/* syscall NUMBER를 호출하고, 인자 ARG0을 전달하며, 반환 값을 `int` 형식으로 반환합니다. */
 #define syscall1(NUMBER, ARG0) ( \
 		syscall(((uint64_t) NUMBER), \
 			((uint64_t) ARG0), 0, 0, 0, 0, 0))

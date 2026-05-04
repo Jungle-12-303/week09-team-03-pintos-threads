@@ -108,6 +108,10 @@ struct thread {
 
 	/* Owned by thread.c. */
 	struct intr_frame tf;               /* Information for switching */
+	/* KDA'S CODE - start*/
+	uint64_t exit_code; 
+	/* KDA'S CODE - end */
+
 	unsigned magic;                     /* Detects stack overflow. */
 };
 

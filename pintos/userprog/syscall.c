@@ -8,10 +8,6 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 
-/* SONNY'S CODE */
-// #include "../include/lib/user/syscall.h"
-/* SONNY'S CODE */
-
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
@@ -55,6 +51,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 
 	case SYS_EXIT:
+	/* KDA'S CODE - start */
+		struct thread *curr = thread_current();
+		
+		curr->exit_code = f->R.rdi;
+		/* KDA'S CODE - end */
 		thread_exit ();
 		break;
 	

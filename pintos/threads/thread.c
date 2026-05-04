@@ -192,7 +192,7 @@ thread_print_stats (void) {
    우선순위 스케줄링은 문제 1-3의 목표이다. */
 tid_t
 thread_create (const char *name, int priority,
-			   thread_func *function, void *aux) {
+		thread_func *function, void *aux) {
 	struct thread *t;
 	tid_t tid;
 
@@ -207,11 +207,10 @@ thread_create (const char *name, int priority,
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
 
-
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	/* 스케줄되면 kernel_thread를 호출한다.
- 	* 참고) rdi는 첫 번째 인자이고, rsi는 두 번째 인자이다. */
+ 	 * 참고) rdi는 첫 번째 인자이고, rsi는 두 번째 인자이다. */
 	t->tf.rip = (uintptr_t) kernel_thread;
 	t->tf.R.rdi = (uint64_t) function;
 	t->tf.R.rsi = (uint64_t) aux;
@@ -292,8 +291,8 @@ thread_tid (void) {
 	return thread_current ()->tid;
 }
 
-/* Deschedules the current thread and destroys it.
-   Never returns to the caller. */
+/* Deschedules the current thread and destroys it.  Never
+   returns to the caller. */
 /* 현재 thread를 스케줄 대상에서 빼고 제거한다.
    호출한 곳으로는 절대 돌아오지 않는다(더 이상 CPU를 받을 수 없게 되고, 나중에 정리). */
 void
@@ -406,7 +405,6 @@ idle (void *idle_started_ UNUSED) {
 }
 
 /* Function used as the basis for a kernel thread. */
-/* 커널 스레드의 기반으로 사용되는 함수. */
 static void
 kernel_thread (thread_func *function, void *aux) {
 	ASSERT (function != NULL);
@@ -489,14 +487,14 @@ do_iret (struct intr_frame *tf) {
    It's not safe to call printf() until the thread switch is
    complete.  In practice that means that printf()s should be
    added at the end of the function. */
-/* 새 스레드의 페이지 테이블을 활성화하고,
-   이전 스레드가 종료 중이라면 파괴함으로써 스레드를 전환한다.
+/* 새 스레드의 페이지 테이블을 활성화하여 스레드를 전환하고, 이전 스레드가 종료 중이라면 이를 종료합니다.
 
-   이 함수가 호출되는 시점에는 방금 PREV 스레드에서 전환된 상태이며,
-   새 스레드는 이미 실행 중이고 인터럽트는 아직 비활성화되어 있다.
+   이 함수가 호출될 때, 우리는 방금 스레드 PREV에서 전환한 상태이며,
+   새 스레드는 이미 실행 중이고, 인터럽트는 여전히 비활성화되어 있습니다.
+   
+   스레드 전환이 완료될 때까지 printf()를 호출하는 것은 안전하지 않습니다.
+   실제로 이는 printf() 호출을 함수의 마지막에 추가해야 함을 의미합니다. */
 
-   스레드 전환이 완료될 때까지 printf()를 호출하는 것은 안전하지 않다.
-   실제로는 printf()를 함수의 끝부분에 추가해야 한다는 뜻이다. */
 static void
 thread_launch (struct thread *th) {
 	uint64_t tf_cur = (uint64_t) &running_thread ()->tf;
@@ -508,11 +506,10 @@ thread_launch (struct thread *th) {
 	 * and then switching to the next thread by calling do_iret.
 	 * Note that, we SHOULD NOT use any stack from here
 	 * until switching is done. */
-	/* 핵심 전환 로직.
-	 * 먼저 전체 실행 컨텍스트를 intr_frame 안에 복원한 다음,
-	 * do_iret을 호출하여 다음 스레드로 전환한다.
-	 * 주의할 점은, 여기서부터 전환이 완료될 때까지
-	 * 어떤 스택도 사용해서는 안 된다는 것이다. */
+	/* 주요 스레드 전환 로직.
+     * 먼저 전체 실행 컨텍스트를 intr_frame에 복원하고,
+     * do_iret를 호출하여 다음 스레드로 전환합니다.
+     * 여기서부터 전환이 완료될 때까지는 어떤 스택도 사용해서는 안 됩니다. */
 	__asm __volatile (
 			/* Store registers that will be used. */
 			"push %%rax\n"
