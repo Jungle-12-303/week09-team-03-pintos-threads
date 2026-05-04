@@ -610,6 +610,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	size_t user_argv_bytes = argc * sizeof *user_argv;
 	user_argv_page_cnt = DIV_ROUND_UP (user_argv_bytes, PGSIZE);
 	user_argv = palloc_get_multiple (0, user_argv_page_cnt);
+	
 	if (user_argv == NULL)
 		goto done;
 
@@ -647,9 +648,9 @@ load (const char *file_name, struct intr_frame *if_) {
 	}
 
 	/* 3. NULL 포인터 센티널 넣기 */
-	if_->rsp -= 8; 
+	if_->rsp -= sizeof(char *); 
 	
-	memset((void *)if_->rsp, 0, 8);
+	memset((void *)if_->rsp, 0, sizeof(char *));
 
 	//memcpy(if_->rsp, 0, 8);
 	// 우연히 맞는 코드, 원래 로직이라면 이 코드가 아님
@@ -659,18 +660,18 @@ load (const char *file_name, struct intr_frame *if_) {
 	for(int i = argc - 1; i >= 0; i--)
 	{
 		/* 주소는 8바이트로 크기 고정 */
-		if_->rsp -= 8;
+		if_->rsp -= sizeof(char *);
 		
 		/* 값을 크기만큼 복사해서 rsp에 넣는다 */
-		memcpy((void *)if_->rsp, &user_argv[i], 8);
+		memcpy((void *)if_->rsp, &user_argv[i], sizeof(char *));
 	}
 	
 	/* 아래에서 push한 문자열 시작 주소를 push 해주기 위해 따로 저장 */
 	argv_rsp = if_->rsp;
 
 	/* 5. 가짜 반환 주소 0 넣기 */
-	if_->rsp -= 8;
-	memset((void *)if_->rsp, 0 , 8);
+	if_->rsp -= sizeof(char *);
+	memset((void *)if_->rsp, 0 , sizeof(char *));
 
 	//hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
 
