@@ -55,7 +55,6 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 
 	case SYS_EXIT:
-		exit ();
 	
 	default:
 		break;
