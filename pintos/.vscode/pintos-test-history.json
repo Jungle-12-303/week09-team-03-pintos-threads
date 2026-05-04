@@ -1,13 +1,38 @@
 {
-  "threads": {
-    "tests/threads/alarm-single": {
-      "count": 1,
-      "last_used": 1777560516.626,
+  "userprog": {
+    "tests/userprog/args-none": {
+      "count": 5,
+      "last_used": 1777883002.23,
       "last_action": "run"
     },
-    "tests/threads/alarm-multiple": {
+    "tests/userprog/args-single": {
+      "count": 4,
+      "last_used": 1777883002.23,
+      "last_action": "run"
+    },
+    "tests/userprog/args-multiple": {
+      "count": 2,
+      "last_used": 1777883002.23,
+      "last_action": "run"
+    },
+    "tests/userprog/args-many": {
+      "count": 2,
+      "last_used": 1777883002.23,
+      "last_action": "run"
+    },
+    "tests/userprog/args-dbl-space": {
+      "count": 2,
+      "last_used": 1777883002.23,
+      "last_action": "run"
+    },
+    "tests/userprog/halt": {
       "count": 1,
-      "last_used": 1777560521.521,
+      "last_used": 1777883023.223,
+      "last_action": "run"
+    },
+    "tests/userprog/exit": {
+      "count": 1,
+      "last_used": 1777883023.848,
       "last_action": "run"
     }
   }
