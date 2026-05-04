@@ -40,6 +40,9 @@ process_init (void) {
  * Notice that THIS SHOULD BE CALLED ONCE. */
 tid_t
 process_create_initd (const char *file_name) {
+	//
+	printf("[trace] process_create_initd: %s\n", file_name);
+
 	char *fn_copy;
 	tid_t tid;
 
@@ -52,6 +55,11 @@ process_create_initd (const char *file_name) {
 
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	
+	//NICK- 자식이 잘 생성되었는지 확인 
+	printf("[debug] 자식 생성 TID: %d\n", tid);
+	//NICK 
+
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	return tid;
@@ -60,7 +68,10 @@ process_create_initd (const char *file_name) {
 /* A thread function that launches first user process. */
 static void
 initd (void *f_name) {
+//NICK- 부모(process_create_initd)가 문제인지 확인용
+printf("[trace] initd: %s\n", f_name);
 #ifdef VM
+//NICK- project3에서 가상메모리 프로젝트에서 사용,  vm모드가 있음.
 	supplemental_page_table_init (&thread_current ()->spt);
 #endif
 
@@ -162,6 +173,10 @@ error:
  * Returns -1 on fail. */
 int
 process_exec (void *f_name) {
+	//NICK - 
+	printf("[trace] process: %s\n ", f_name);
+	//NICK
+
 	char *file_name = f_name;
 	bool success;
 
@@ -204,6 +219,9 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	while(true){
+		thread_yield();
+	}
 	return -1;
 }
 
@@ -322,6 +340,10 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
  * Returns true if successful, false otherwise. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
+//NICK 
+	//printf("[trace] load: %s\n", file_name);
+//NICK 
+
 	struct thread *t = thread_current ();
 	struct ELF ehdr;
 	struct file *file = NULL;
@@ -412,11 +434,11 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 
 	/* Start address. */
-	if_->rip = ehdr.e_entry;
+	if_->rip = ehdr.e_entry; 
 
 	/* TODO: Your code goes here.
 	 * TODO: Implement argument passing (see project2/argument_passing.html). */
-
+	
 	success = true;
 
 done:
