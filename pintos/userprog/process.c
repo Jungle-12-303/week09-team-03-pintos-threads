@@ -272,6 +272,16 @@ process_wait (tid_t child_tid) {
 	while(true){
 		thread_yield();
 	}
+
+	struct thread *curr = thread_current();
+
+	while(true)
+	{
+		if(curr->exit_code != NULL)
+		{
+			break;
+		}
+	}
 	return -1;
 }
 
@@ -283,6 +293,12 @@ process_exit (void) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
+	/* TODO: 코드를 여기에 작성하세요.
+     * TODO: 프로세스 종료 메시지를 구현하세요 (참조:
+     * TODO: project2/process_termination.html).
+     * TODO: 여기에서 프로세스 리소스 정리를 구현하는 것이 좋습니다. */
+
+	printf("%s: exit(%d)\n", curr->name, curr->exit_code);
 
 	process_cleanup ();
 }
@@ -650,7 +666,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	if_->rsp -= 8;
 	memset((void *)if_->rsp, 0 , 8);
 
-	hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
+	//hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
 
 	/* 6. x86-64 호출 규약에 따라 레지스터 초기화 */
 	if_->R.rdi = argc;

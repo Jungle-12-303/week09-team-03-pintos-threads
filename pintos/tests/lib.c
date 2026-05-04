@@ -16,6 +16,11 @@ vmsg (const char *format, va_list args, const char *suffix)
      that'll (typically) ensure that it gets sent to the console
      atomically.  Otherwise kernel messages like "foo: exit(0)"
      can end up being interleaved if we're unlucky. */
+  /* 우리는 메시지 전체를 단일 버퍼에 담아 
+     단일 시스템 호출로 출력하기 위해 다소 번거로운 과정을 거치는데, 
+     이는 (일반적으로) 메시지가 콘솔로 원자적으로 전송되도록 보장하기 위함이다. 
+     그렇지 않으면 운이 나쁘게도 "foo: exit(0)"과 같은 커널 메시지가 뒤섞여 
+     출력될 수 있다. */
   static char buf[1024];
 
   snprintf (buf, sizeof buf, "(%s) ", test_name);
