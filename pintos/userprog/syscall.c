@@ -55,6 +55,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 
 	case SYS_EXIT:
+		/* KDA'S CODE - start */
+		struct thread *curr = thread_current();
+		
+		curr->exit_code = f->R.rdi;
+		/* KDA'S CODE - end */
+		
 		thread_exit ();
 		break;
 	

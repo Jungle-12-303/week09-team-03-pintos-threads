@@ -115,7 +115,9 @@ struct thread {
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */
 
-	uint64_t exit_code;
+	/* KDA'S CODE - start*/
+	uint64_t exit_code; 
+	/* KDA'S CODE - end */
 };
 
 /* If false (default), use round-robin scheduler.

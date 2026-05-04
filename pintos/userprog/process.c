@@ -53,7 +53,7 @@ tid_t init_tid = 0;
 tid_t
 process_create_initd (const char *file_name) {
 	//
-	printf("[trace] process_create_initd: %s\n", file_name);
+	//printf("[trace] process_create_initd: %s\n", file_name);
 
 	char *fn_copy;
 	tid_t tid;
@@ -72,7 +72,7 @@ process_create_initd (const char *file_name) {
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
 	
 	//NICK- 자식이 잘 생성되었는지 확인 
-	printf("[debug] 자식 생성 TID: %d\n", tid);
+	//printf("[debug] 자식 생성 TID: %d\n", tid);
 	//NICK 
 
 	if (tid == TID_ERROR)
@@ -89,7 +89,7 @@ process_create_initd (const char *file_name) {
 static void
 initd (void *f_name) {
 //NICK- 부모(process_create_initd)가 문제인지 확인용
-printf("[trace] initd: %s\n", f_name);
+//printf("[trace] initd: %s\n", f_name);
 #ifdef VM
 //NICK- project3에서 가상메모리 프로젝트에서 사용,  vm모드가 있음.
 	supplemental_page_table_init (&thread_current ()->spt);
@@ -211,7 +211,7 @@ error:
 int
 process_exec (void *f_name) {
 	//NICK - 
-	printf("[trace] process: %s\n ", f_name);
+	//printf("[trace] process: %s\n ", f_name);
 	//NICK
 
 	char *file_name = f_name;
@@ -289,7 +289,9 @@ process_exit (void) {
      * TODO: project2/process_termination.html).
      * TODO: 여기에서 프로세스 리소스 정리를 구현하는 것이 좋습니다. */
 
-	printf("%s: exit(%d)\n", curr->name, (int) curr->tf.R.rdi);
+	 /* KDA'S CODE - start */
+	 printf("%s: exit(%d)\n", curr->name, curr->exit_code);
+	 /* KDA'S CODE - end */
 	sema_up (&wait_child_thread);
 
 	process_cleanup ();
@@ -486,9 +488,14 @@ load (const char *file_name, struct intr_frame *if_) {
 	// run 이후로 파싱된 file_name에서 또 파싱하여 argv 중 0번지에 있는 값으로 file을 열어야 함
 	file = filesys_open (argv[0]);
 
+	/* KDA'S CODE - start */
+	strlcpy (t->name, argv[0], sizeof t->name);
+	
 	// 여기에 pintos에서 알아서 run 명령어 다음 문자열을 파싱한 file_name이 들어감 
 	//file = filesys_open (file_name);
 	
+	/* KDA'S CODE - end */
+
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
