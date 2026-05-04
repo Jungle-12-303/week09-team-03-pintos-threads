@@ -272,10 +272,10 @@ process_wait (tid_t child_tid) {
 	// 아니면 무한 루프로 먼갈 체크 
 	while(1)
 	{
-		if(child_tid == init_tid)
-		{
-			break;
-		}
+		// if(child_tid == init_tid)
+		// {
+		// 	break;
+		// }
 	}
 	
 	// tid가 살아있을 동안 while 돌고?
@@ -415,6 +415,11 @@ load (const char *file_name, struct intr_frame *if_) {
 	off_t file_ofs;
 	bool success = false;
 	int i;
+	char *fn_copy = NULL;
+	char **argv = NULL;
+	uintptr_t *user_argv = NULL;
+	size_t argv_page_cnt = 0;
+	size_t user_argv_page_cnt = 0;
 
 	/* Allocate and activate page directory. */
 	/* 페이지 디렉터리를 할당하고 활성화합니다. */
@@ -430,12 +435,10 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	/* file_name 원본을 파싱하면 문자열이 깨질 가능성이 있기 때문에 복사해서 사용 
 	 * process_create_initd 참고 */  
-	char *fn_copy;
-
 	fn_copy = palloc_get_page (0);
 	
 	if (fn_copy == NULL)
-		return TID_ERROR;
+		goto done;
 	
 	strlcpy (fn_copy, file_name, PGSIZE);
 
@@ -447,7 +450,11 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* 한 문자당 한 토큰인 경우 -> len + 1, 
 	 *	-> 한 문자 당 한 토큰으로 마지막 \0까지 추가하려면 + 2 해줘야 함 */
 	size_t cmd_len = strlen(fn_copy) + 2;
-	char *argv[cmd_len];
+	size_t argv_bytes = cmd_len * sizeof *argv;
+	argv_page_cnt = DIV_ROUND_UP (argv_bytes, PGSIZE);
+	argv = palloc_get_multiple (0, argv_page_cnt);
+	if (argv == NULL)
+		goto done;
 
 	int argc = 0;
 
@@ -476,8 +483,12 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* KDA'S CODE - end */
 
 	/* Open executable file. */
+	// run 이후로 파싱된 file_name에서 또 파싱하여 argv 중 0번지에 있는 값으로 file을 열어야 함
+	file = filesys_open (argv[0]);
+
 	// 여기에 pintos에서 알아서 run 명령어 다음 문자열을 파싱한 file_name이 들어감 
-	file = filesys_open (file_name);
+	//file = filesys_open (file_name);
+	
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
@@ -567,7 +578,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* TODO: 코드를 여기에 작성하세요.
      * TODO: 인자 전달 기능을 구현하세요(project2/argument_passing.html 참조). */
 
-		
+	/* KDA'S CODE - start */
 	/* 
 	스레드에 인자 전달 = 스레드의 스택에 넣는다
 	높은 주소부터 낮은 주소로
@@ -580,31 +591,99 @@ load (const char *file_name, struct intr_frame *if_) {
 	스택에 정보를 넣고 스택의 정보를 넣음
 	-> 이렇게 하면 main부터 실행된다!
 	*/
+	
+	uintptr_t argv_rsp;
+	size_t user_argv_bytes = argc * sizeof *user_argv;
+	user_argv_page_cnt = DIV_ROUND_UP (user_argv_bytes, PGSIZE);
+	user_argv = palloc_get_multiple (0, user_argv_page_cnt);
+	if (user_argv == NULL)
+		goto done;
 
 	/* 1. 명령어들을 스택의 맨 위에 넣기 */
-	// for(int i = 0; i < argc; i++)
-	// {
-	// 	/* 제일 위인 rsp에서 넣을 값만큼 빼서 공간을 만들고 값을 넣는다 */
-	// 	size_t len = strlen(argv[i]) + 1;
-	// 	if_->rsp -= len;
+	/* argv[argc] = NULL 이기 때문에 argc - 1부터 시작 */
+	for(int i = argc - 1; i >= 0; i--)
+	{
+		/* strlen(argv[i]) + 1을 크기로 잡아야 토큰 문자열 마지막 \0까지 넣을 수 있음*/
+		size_t len = strlen(argv[i]) + 1;
+		
+		/* 제일 위인 rsp에서 넣을 값만큼 빼서 공간을 만들고 값을 넣는다 */
+		if_->rsp -= len;
+		
+		/* 아래에서 push한 문자열 시작 위치를 push 해주기 위해 따로 저장 */
+		user_argv[i] = if_->rsp;
 
-	// 	memcpy(if_->rsp, argv[i], len);
-	// }
+		/* 값을 크기만큼 복사해서 rsp에 넣는다 */
+		memcpy((void *)if_->rsp, argv[i], len);
+	}
+
 	/* 2. 8바이트 내림 워드 패딩 넣기 */
-	
-	/* 3. 각 문자열의 주소, NULL 포인터 센티널을 오른쪽 -> 왼쪽 순서로 스택에 넣기 */
-	
-	/* 4. 가짜 반환 주소 0 넣기 */
+	// 기존 rsp 값 저장 
+	uintptr_t rsp_old = if_->rsp;
 
-	/* 5. x86-64 호출 규약에 따라 레지스터 초기화 */
+	// 8의 배수로 내림
+	if_->rsp &= ~7;
+
+	// 기존 값에서 내린 값의 차로 패딩 사이즈 구함 
+	size_t padding_size = rsp_old - if_->rsp;
+
+	if(padding_size > 0)
+	{
+		// memset으로 rsp에서 패딩 사이즈만큼 0으로 채움 
+		memset((void *)if_->rsp, 0 , padding_size);
+	}
+
+	/* 3. NULL 포인터 센티널 넣기 */
+	if_->rsp -= 8; 
+	
+	memset((void *)if_->rsp, 0, 8);
+
+	//memcpy(if_->rsp, 0, 8);
+	// 우연히 맞는 코드, 원래 로직이라면 이 코드가 아님
+	// memset(if_->rsp, NULL, 8); 
+	
+	/* 4. 문자열 시작 주소 넣기 */
+	for(int i = argc - 1; i >= 0; i--)
+	{
+		/* 주소는 8바이트로 크기 고정 */
+		if_->rsp -= 8;
+		
+		/* 값을 크기만큼 복사해서 rsp에 넣는다 */
+		memcpy((void *)if_->rsp, &user_argv[i], 8);
+	}
+	
+	/* 아래에서 push한 문자열 시작 주소를 push 해주기 위해 따로 저장 */
+	argv_rsp = if_->rsp;
+
+	/* 5. 가짜 반환 주소 0 넣기 */
+	if_->rsp -= 8;
+	memset((void *)if_->rsp, 0 , 8);
+
+	hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
+
+	/* 6. x86-64 호출 규약에 따라 레지스터 초기화 */
 	if_->R.rdi = argc;
-	if_->R.rsi = *argv;
+
+	/* argv 배열의 시작 주소를 넣어야 함 *argv는 결국 argv[0]의 시작 주소가 됨 */
+	if_->R.rsi = argv_rsp; // 얜 커널 스택의 배열 주소 -> 유저 스택에 push했던 문자열들의 주소를 넣어야 함
+	
+	/* KDA'S CODE - end */
 
    success = true;
-
+   
 done:
 	/* We arrive here whether the load is successful or not. */
 	file_close (file);
+
+	if (user_argv != NULL)
+		palloc_free_multiple (user_argv, user_argv_page_cnt);
+
+	if (argv != NULL)
+		palloc_free_multiple (argv, argv_page_cnt);
+
+	if (fn_copy != NULL) {
+		palloc_free_page (fn_copy);
+	}
+
 	return success;
 }
 
