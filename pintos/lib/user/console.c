@@ -4,14 +4,6 @@
 #include <syscall-nr.h>
 
 
-/* SONNY'S CODE START */
-// void
-// write(int fileno, char* s, int len) {
-// 	syscall3(write, fileno, &s, len);
-// }
-/* SONNY'S CODE END* /
-
-
 /* The standard vprintf() function,
    which is like printf() but uses a va_list. */
 int
