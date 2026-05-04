@@ -50,6 +50,9 @@ tid_t init_tid = 0;
 
 tid_t
 process_create_initd (const char *file_name) {
+	//
+	printf("[trace] process_create_initd: %s\n", file_name);
+
 	char *fn_copy;
 	tid_t tid;
 
@@ -65,6 +68,11 @@ process_create_initd (const char *file_name) {
 	/* Create a new thread to execute FILE_NAME. */
 	/* FILE_NAME을 실행하기 위해 새로운 스레드를 생성합니다. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	
+	//NICK- 자식이 잘 생성되었는지 확인 
+	printf("[debug] 자식 생성 TID: %d\n", tid);
+	//NICK 
+
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	
@@ -78,7 +86,10 @@ process_create_initd (const char *file_name) {
 /* 첫 번째 사용자 프로세스를 시작하는 스레드 함수. */
 static void
 initd (void *f_name) {
+//NICK- 부모(process_create_initd)가 문제인지 확인용
+printf("[trace] initd: %s\n", f_name);
 #ifdef VM
+//NICK- project3에서 가상메모리 프로젝트에서 사용,  vm모드가 있음.
 	supplemental_page_table_init (&thread_current ()->spt);
 #endif
 
@@ -197,6 +208,10 @@ error:
  * 실패 시 -1을 반환합니다. */
 int
 process_exec (void *f_name) {
+	//NICK - 
+	printf("[trace] process: %s\n ", f_name);
+	//NICK
+
 	char *file_name = f_name;
 	bool success;
 
@@ -254,36 +269,9 @@ process_wait (tid_t child_tid) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	/* XXX: 참고) process_wait(initd)가 호출되면 pintos가 종료됩니다. 따라서
-     * XXX:       process_wait를 구현하기 전에
-     * XXX:       여기에 무한 루프를 추가하는 것이 좋습니다. */
-
-	/* KDA'S CODE - start */
-	// if(child_tid == init_tid)
-	// {
-	// 	while(1)
-	// 	{
-
-	// 	}
-	// }
-
-	// main은 block or ready
-
-	// 아니면 무한 루프로 먼갈 체크 
-	while(1)
-	{
-		// if(child_tid == init_tid)
-		// {
-		// 	break;
-		// }
+	while(true){
+		thread_yield();
 	}
-	
-	// tid가 살아있을 동안 while 돌고?
-
-	/* KDA'S CODE - end*/
-
-	// 죽으면 스레드의 종료 상태를 반환 -> 유저 모드에서 exit 할 때 반환하는 값 
-	// 예외로 인해 강종이 -1 반환
 	return -1;
 }
 
@@ -409,6 +397,10 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
  * 성공하면 true를, 그렇지 않으면 false를 반환합니다. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
+//NICK 
+	//printf("[trace] load: %s\n", file_name);
+//NICK 
+
 	struct thread *t = thread_current ();
 	struct ELF ehdr;
 	struct file *file = NULL;
