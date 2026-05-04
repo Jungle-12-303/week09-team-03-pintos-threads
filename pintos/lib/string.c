@@ -224,6 +224,9 @@ strtok_r (char *s, const char *delimiters, char **save_ptr) {
 
 	/* If S is nonnull, start from it.
 	   If S is null, start from saved position. */
+		 
+	/* S가 NULL이 아니면 S에서 시작한다.
+   S가 NULL이면 저장된 위치에서 시작한다. */
 	if (s == NULL)
 		s = *save_ptr;
 	ASSERT (s != NULL);
