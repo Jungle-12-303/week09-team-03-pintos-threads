@@ -289,9 +289,9 @@ process_exit (void) {
      * TODO: project2/process_termination.html).
      * TODO: 여기에서 프로세스 리소스 정리를 구현하는 것이 좋습니다. */
 
-	 /* KDA'S CODE - start */
+	/* KDA'S CODE - start */
 	 printf("%s: exit(%d)\n", curr->name, curr->exit_code);
-	 /* KDA'S CODE - end */
+	/* KDA'S CODE - end */
 	sema_up (&wait_child_thread);
 
 	process_cleanup ();
