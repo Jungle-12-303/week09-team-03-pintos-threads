@@ -32,3 +32,7 @@ core
 # 각종 설정 파일
 .codex
 pintos/.vscode/
+
+# Annotation (auto-generated)
+.jungle-kit/
+.gitattributes

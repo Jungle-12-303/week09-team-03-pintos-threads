@@ -24,6 +24,18 @@ void syscall_handler (struct intr_frame *);
 #define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
+
+
+/* 구현 예정 목록
+	fd_table_init
+	file open 수정
+	file close 수정
+	free_fd_table
+	alloc_fd_table
+*/
+
+/* SONNY'S CODE */
+
 void
 syscall_init (void) {
 	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48  |
@@ -37,6 +49,7 @@ syscall_init (void) {
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
 }
 
+
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
@@ -47,7 +60,22 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	switch ((int)(f->R.rax))
 	{
 	case SYS_WRITE: /* write -SONNY- */
-		putbuf ((char*)(f->R.rsi), (size_t)(f->R.rdx));
+		int fd = (int)(f->R.rdi);
+		void *buffer = (void*)(f->R.rsi);
+		unsigned size = (unsigned)(f->R.rdx);
+
+		if (fd = 0) {
+
+		}
+		else if (fd = 1){
+			
+		}
+		else {
+			
+		}
+		
+
+		// putbuf ((char*)(f->R.rsi), (size_t)(f->R.rdx));
 		break;
 
 	case SYS_EXIT:
