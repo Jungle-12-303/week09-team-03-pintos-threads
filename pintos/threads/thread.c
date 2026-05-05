@@ -15,6 +15,7 @@
 #include "userprog/process.h"
 #endif
 
+
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -409,6 +410,13 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+	
+	/*---NICK---*/
+#ifdef USERPROG
+    t->fd_table = NULL;
+    t->next_fd = 2;
+#endif
+	/*---NICK---*/
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
