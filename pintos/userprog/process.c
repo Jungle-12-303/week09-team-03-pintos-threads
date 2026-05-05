@@ -34,6 +34,24 @@ static struct semaphore wait_child_thread;
 static void
 process_init (void) {
 	struct thread *current = thread_current ();
+
+	/*---NICK---*/
+	//실제 테이블 구조를 만듬
+	if(current -> fd_table == NULL)
+	{
+		current -> fd_table = palloc_get_page(PAL_ZERO)	;
+		if(current -> fd_table == NULL)
+			thread_exit();	
+		
+		current->fd_table[0].type = FD_STDIN;
+		current->fd_table[0].file = NULL;
+
+		current->fd_table[1].type = FD_STDOUT;
+		current->fd_table[1].file = NULL;
+
+		current -> next_fd = 2;
+	}
+	/*---NICK---*/
 }
 
 /* Starts the first userland program, called "initd", loaded from FILE_NAME.

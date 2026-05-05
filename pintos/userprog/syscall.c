@@ -46,6 +46,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	/* SONNY'S CODE */
 	switch ((int)(f->R.rax))
 	{
+	
 	case SYS_WRITE: /* write -SONNY- */
 		putbuf ((char*)(f->R.rsi), (size_t)(f->R.rdx));
 		break;
