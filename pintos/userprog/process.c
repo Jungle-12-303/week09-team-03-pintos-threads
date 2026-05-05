@@ -514,7 +514,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	file = filesys_open (argv[0]);
 
 		/* JANE'S CODE */
-	strlcpy(t->name, argv[0], sizeof t->name);
+	// strlcpy(t->name, argv[0], sizeof t->name);
 	/* JANE'S CODE */
 	
 	if (file == NULL) {
