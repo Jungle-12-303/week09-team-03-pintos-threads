@@ -2,8 +2,6 @@
 #include <string.h>
 #include <syscall.h>
 #include <syscall-nr.h>
-
-
 /* The standard vprintf() function,
    which is like printf() but uses a va_list. */
 int

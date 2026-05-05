@@ -5,8 +5,16 @@
 
 /* An open file. */
 struct file {
+	/* 이 파일이 실제로 연결된 inode를 가리키는 포인터
+	 * 파일의 길이, 디스크 상 위치 같은 진짜 메타정보는 보통 inode 쪽에 있음 
+	 * 즉 file은 “열린 파일 핸들”, inode는 “실제 파일 본체” 느낌 */
 	struct inode *inode;        /* File's inode. */
+
+	/* 현재 파일 읽기/쓰기 위치 */
 	off_t pos;                  /* Current position. */
+
+	/* 이 파일에 대해 쓰기를 막아둔 상태인지 표시
+	 * true면 쓰기 금지 상태*/
 	bool deny_write;            /* Has file_deny_write() been called? */
 };
 
