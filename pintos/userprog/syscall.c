@@ -80,15 +80,16 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		/* bool create (const char *file, unsigned initial_size); */
 		/* file = rdi, initial_size = rsi */
 		/* rax = syscall 번호  */
-		char file = (char*)f->R.rdi;
+		char *file = (char*)f->R.rdi;
 		unsigned initial_size = (unsigned)f->R.rsi;
 
 		/* 첫번째 인자값이 NULL일 때 종료 상태 코드 -1 반환 */ 
-		if(file == NULL || file >= KERN_BASE)
+		/* PTE_ADDR(PTE): 페이지 테이블 엔트리(PTE) 값에서 "주소 부분만" 뽑아내는 매크로 -> 사용 X */
+		/* pml4_get_page: 매핑된 커널 가상 주소 또는 NULL 반환 */
+		if(file == NULL || file >= KERN_BASE || pml4_get_page(curr->pml4, (const void *)file) == NULL)
 		{
 			/* 종료 메세지 출력을 위해 exit_code -1로 설정 */
 			curr->exit_code = -1;
-			//f->R.rdi = -1;
 
 			thread_exit();
 		}

@@ -148,6 +148,7 @@ pdp_for_each (uint64_t *pdp,
 }
 
 /* Apply FUNC to each available pte entries including kernel's. */
+/* 커널의 항목을 포함하여 사용 가능한 모든 pte 항목에 FUNC를 적용합니다. */
 bool
 pml4_for_each (uint64_t *pml4, pte_for_each_func *func, void *aux) {
 	for (unsigned i = 0; i < PGSIZE / sizeof(uint64_t *); i++) {
@@ -214,6 +215,9 @@ pml4_activate (uint64_t *pml4) {
  * address UADDR in pml4.  Returns the kernel virtual address
  * corresponding to that physical address, or a null pointer if
  * UADDR is unmapped. */
+/* pml4의 사용자 가상 주소 UADDR에 해당하는 물리 주소를 조회합니다. 
+ * 해당 물리 주소에 대응하는 커널 가상 주소를 반환하거나, 
+ * UADDR이 매핑되지 않은 경우 null 포인터를 반환합니다. */
 void *
 pml4_get_page (uint64_t *pml4, const void *uaddr) {
 	ASSERT (is_user_vaddr (uaddr));
