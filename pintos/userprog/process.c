@@ -34,6 +34,24 @@ static struct semaphore wait_child_thread;
 static void
 process_init (void) {
 	struct thread *current = thread_current ();
+
+	/*---NICK---*/
+	//실제 테이블 구조를 만듬
+	if(current -> fd_table == NULL)
+	{
+		current -> fd_table = palloc_get_page(PAL_ZERO)	;
+		if(current -> fd_table == NULL)
+			thread_exit();	
+		
+		current->fd_table[0].type = FD_STDIN;
+		current->fd_table[0].file = NULL;
+
+		current->fd_table[1].type = FD_STDOUT;
+		current->fd_table[1].file = NULL;
+
+		current -> next_fd = 2;
+	}
+	/*---NICK---*/
 }
 
 /* Starts the first userland program, called "initd", loaded from FILE_NAME.
@@ -495,14 +513,10 @@ load (const char *file_name, struct intr_frame *if_) {
 	// run 이후로 파싱된 file_name에서 또 파싱하여 argv 중 0번지에 있는 값으로 file을 열어야 함
 	file = filesys_open (argv[0]);
 
-	/* KDA'S CODE - start */
-	strlcpy (t->name, argv[0], sizeof t->name);
+		/* JANE'S CODE */
+	strlcpy(t->name, argv[0], sizeof t->name);
+	/* JANE'S CODE */
 	
-	// 여기에 pintos에서 알아서 run 명령어 다음 문자열을 파싱한 file_name이 들어감 
-	//file = filesys_open (file_name);
-	
-	/* KDA'S CODE - end */
-
 	if (file == NULL) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
@@ -610,6 +624,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	size_t user_argv_bytes = argc * sizeof *user_argv;
 	user_argv_page_cnt = DIV_ROUND_UP (user_argv_bytes, PGSIZE);
 	user_argv = palloc_get_multiple (0, user_argv_page_cnt);
+	
 	if (user_argv == NULL)
 		goto done;
 
@@ -647,9 +662,9 @@ load (const char *file_name, struct intr_frame *if_) {
 	}
 
 	/* 3. NULL 포인터 센티널 넣기 */
-	if_->rsp -= 8; 
+	if_->rsp -= sizeof(char *); 
 	
-	memset((void *)if_->rsp, 0, 8);
+	memset((void *)if_->rsp, 0, sizeof(char *));
 
 	//memcpy(if_->rsp, 0, 8);
 	// 우연히 맞는 코드, 원래 로직이라면 이 코드가 아님
@@ -659,18 +674,18 @@ load (const char *file_name, struct intr_frame *if_) {
 	for(int i = argc - 1; i >= 0; i--)
 	{
 		/* 주소는 8바이트로 크기 고정 */
-		if_->rsp -= 8;
+		if_->rsp -= sizeof(char *);
 		
 		/* 값을 크기만큼 복사해서 rsp에 넣는다 */
-		memcpy((void *)if_->rsp, &user_argv[i], 8);
+		memcpy((void *)if_->rsp, &user_argv[i], sizeof(char *));
 	}
 	
 	/* 아래에서 push한 문자열 시작 주소를 push 해주기 위해 따로 저장 */
 	argv_rsp = if_->rsp;
 
 	/* 5. 가짜 반환 주소 0 넣기 */
-	if_->rsp -= 8;
-	memset((void *)if_->rsp, 0 , 8);
+	if_->rsp -= sizeof(char *);
+	memset((void *)if_->rsp, 0 , sizeof(char *));
 
 	//hex_dump (if_->rsp, (void *) if_->rsp, USER_STACK - if_->rsp, true);
 
