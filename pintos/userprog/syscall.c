@@ -8,7 +8,7 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
-#include "filesys/file.h"
+#include "filesys/filesys.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -86,6 +86,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		/* 첫번째 인자값이 NULL일 때 종료 상태 코드 -1 반환 */ 
 		/* PTE_ADDR(PTE): 페이지 테이블 엔트리(PTE) 값에서 "주소 부분만" 뽑아내는 매크로 -> 사용 X */
 		/* pml4_get_page: 매핑된 커널 가상 주소 또는 NULL 반환 */
+		/* todo: 현재는 문자열 전체가 아니라 시작 주소 한 점만 검증하는 로직, 추후 수정하면 좋을 듯 */
 		if(file == NULL || file >= KERN_BASE || pml4_get_page(curr->pml4, (const void *)file) == NULL)
 		{
 			/* 종료 메세지 출력을 위해 exit_code -1로 설정 */
@@ -101,11 +102,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			/* 2. 여러 User Process가 동시에 시스템 콜을 호출하며는 것은 안전하지 않고, 서로 간섭을 일으키게 됨 */ 
 			lock_acquire (&lock);
 
-			f->R.rax = filesys_create((char*)f->R.rdi, (unsigned)f->R.rsi);
+			f->R.rax = filesys_create(file, initial_size);
+			
+			/* 반환값을 rax로 넘기고 락 해제 */ 
+			lock_release (&lock);
 		}
-
-		/* 반환값을 rax로 넘기고 락 해제 */ 
-		lock_release (&lock);
 
 		break;
 	/* KDA'S CODE - end */
