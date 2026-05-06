@@ -36,21 +36,14 @@ process_init (void) {
 	struct thread *current = thread_current ();
 
 	/*---NICK---*/
-	/* 포인터에서 배열로 변경했기 때문에 NULL 초기화 과정 제거 -SONNY- */
-	// 실제 테이블 구조를 만듬
-	// if (current->fd_table == NULL) {
-	// 	if (current->fd_table == NULL)
-	// 		thread_exit ();
-
-	/* FD_STDIN/OUT에서 수정. stdio.h에 STDIN/OUT_FILENO로 사용중 -> 다시 원상 복귀 -SONNY- */
 	current->fd_table[0].type = FD_STDIN;
 	current->fd_table[0].file = NULL;
 
 	current->fd_table[1].type = FD_STDOUT;
 	current->fd_table[1].file = NULL;
 
-	for (int i = 2; i <= 128; i++) {
-		current->fd_table->type = FD_NONE;
+	for (int i = 2; i < 128; i++) {
+		current->fd_table[i].type = FD_NONE;
 	}
 
 	current->next_fd = 2;

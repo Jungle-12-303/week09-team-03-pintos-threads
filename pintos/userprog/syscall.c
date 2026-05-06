@@ -30,16 +30,6 @@ static struct lock lock;
 #define MSR_LSTAR        0xc0000082 /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
-/* 구현 예정 목록
-    fd_table_init
-    file open 수정
-    file close 수정
-    free_fd_table
-    alloc_fd_table
-*/
-
-/* SONNY'S CODE */
-
 void
 syscall_init (void) {
 	write_msr (MSR_STAR, ((uint64_t) SEL_UCSEG - 0x10) << 48 |
@@ -161,15 +151,14 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		void *buffer = (void *) (f->R.rsi);
 		unsigned size = (unsigned) (f->R.rdx);
 
-		// if (curr->fd_table[fd].file == NULL) {
-		// 	break;
-		// }
-
 		if (fd == 0) {
 		} else if (fd == 1) {
 			putbuf ((char *) (f->R.rsi), (size_t) (f->R.rdx));
 		} else {
-			// putbuf ((char *) (f->R.rsi), (size_t) (f->R.rdx));
+			if (curr->fd_table[fd].file != NULL) {
+				// putbuf ((char *) (f->R.rsi), (size_t) (f->R.rdx));
+				f->R.rax = (uint64_t) (size);
+			}
 		}
 
 		break;
