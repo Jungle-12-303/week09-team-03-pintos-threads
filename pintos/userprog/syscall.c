@@ -73,7 +73,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_HALT: /* No ARG */
 		break;
 
-	case SYS_EXIT:/* void exit (int status) */
+	case SYS_EXIT: /* void exit (int status) */
 		/* KDA'S CODE - start */
 		curr->exit_code = f->R.rdi;
 		/* KDA'S CODE - end */
@@ -113,7 +113,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			thread_exit ();
 			break;
 		}
-	/* HOSEOK'S CODE end */
+		/* HOSEOK'S CODE end */
 
 	case SYS_WAIT: /* int wait (pid_t pid) */
 		break;
@@ -183,10 +183,26 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 
 	case SYS_READ: /* int read (int fd, void *buffer, unsigned size) */
+		
 		break;
-	
+
 	case SYS_WRITE: /* int write (int fd, const void *buffer, unsigned size) */
 		/* write -SONNY- */
+
+		/* buffer 주소 확인 bad-ptr 관련 -SONNY- */
+		if ((f->R.rsi) == NULL || (f->R.rsi) >= KERN_BASE || pml4_get_page (curr->pml4, (const void *) (f->R.rsi)) == NULL) {
+			/* 종료 메세지 출력을 위해 exit_code -1로 설정 */
+			curr->exit_code = -1;
+
+			thread_exit ();
+		}
+
+		/* bad-fd 관련 -SONNY- */
+		if ((f->R.rdi) < 0 || 128 <= (f->R.rdi)) {
+			curr->exit_code = -1;
+			thread_exit ();
+		}
+
 		int fd = (int) (f->R.rdi);
 		void *buffer = (void *) (f->R.rsi);
 		unsigned size = (unsigned) (f->R.rdx);
