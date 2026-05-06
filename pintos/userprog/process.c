@@ -36,7 +36,7 @@ process_init (void) {
 	//실제 테이블 구조를 만듬
 	if(current -> fd_table == NULL)
 	{
-		current -> fd_table = palloc_get_page(PAL_ZERO)	;
+		current -> fd_table = palloc_get_page(PAL_ZERO);
 		if(current -> fd_table == NULL)
 			thread_exit();	
 		
