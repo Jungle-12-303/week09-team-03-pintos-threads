@@ -42,14 +42,19 @@ process_init (void) {
 	// 	if (current->fd_table == NULL)
 	// 		thread_exit ();
 
-	/* FD_STDIN/OUT에서 수정. stdio.h에 STDIN/OUT_FILENO로 사용중 -SONNY- */
-	current->fd_table[0].type = STDIN_FILENO;
+	/* FD_STDIN/OUT에서 수정. stdio.h에 STDIN/OUT_FILENO로 사용중 -> 다시 원상 복귀 -SONNY- */
+	current->fd_table[0].type = FD_STDIN;
 	current->fd_table[0].file = NULL;
 
-	current->fd_table[1].type = STDOUT_FILENO;
+	current->fd_table[1].type = FD_STDOUT;
 	current->fd_table[1].file = NULL;
 
+	for (int i = 2; i <= 128; i++) {
+		current->fd_table->type = FD_NONE;
+	}
+
 	current->next_fd = 2;
+
 	// }
 	/*---NICK---*/
 }

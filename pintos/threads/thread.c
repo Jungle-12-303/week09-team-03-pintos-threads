@@ -431,7 +431,17 @@ init_thread (struct thread *t, const char *name, int priority) {
 	/*---NICK---*/
 #ifdef USERPROG
 	// t->fd_table = NULL; fd_table이 포인터가 아니라 그냥 배열로 선언했기 때문에 코드 삭제 -SONNY-
+	t->fd_table[0].type = FD_STDIN;
+	t->fd_table[0].file = NULL;
+
+	t->fd_table[1].type = FD_STDOUT;
+	t->fd_table[1].file = NULL;
+
 	t->next_fd = 2;
+	for (int i = 2; i <= 128; i++) {
+		t->fd_table[i].type = FD_NONE;
+	}
+
 #endif
 	/*---NICK---*/
 }

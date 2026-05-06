@@ -127,10 +127,25 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	case SYS_OPEN: /* int open (const char *file) */
 		/* SONNY'S CODE */
+
+		/* open-null/bad-ptr 관련 -SONNY- */
+		if ((f->R.rdi) == NULL || (f->R.rdi) >= KERN_BASE || pml4_get_page (curr->pml4, (const void *) (f->R.rdi)) == NULL) {
+			/* 종료 메세지 출력을 위해 exit_code -1로 설정 */
+			curr->exit_code = -1;
+
+			thread_exit ();
+			break;
+		}
+
 		struct file *open_file = filesys_open (f->R.rdi);
+
 		if (open_file != NULL) {
 			curr->fd_table[curr->next_fd].file = open_file;
 			curr->next_fd++;
+			f->R.rax = (uint64_t) (curr->next_fd - 1);
+
+		} else {
+			f->R.rax = (uint64_t) (-1);
 		}
 		break;
 
@@ -142,20 +157,20 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	case SYS_WRITE: /* int write (int fd, const void *buffer, unsigned size) */
 		/* write -SONNY- */
-		// int fd = (int) (f->R.rdi);
-		// void *buffer = (void *) (f->R.rsi);
-		// unsigned size = (unsigned) (f->R.rdx);
+		int fd = (int) (f->R.rdi);
+		void *buffer = (void *) (f->R.rsi);
+		unsigned size = (unsigned) (f->R.rdx);
 
-		putbuf ((char *) (f->R.rsi), (size_t) (f->R.rdx));
-
-		// if (fd = 0) {
-
-		// } else if (fd = 1) {
-		// 	putbuf((char *) (f->R.rsi), (size_t) (f->R.rdx));
+		// if (curr->fd_table[fd].file == NULL) {
+		// 	break;
 		// }
-		// else {
-		// 	write (fd, buffer, size);
-		// }
+
+		if (fd == 0) {
+		} else if (fd == 1) {
+			putbuf ((char *) (f->R.rsi), (size_t) (f->R.rdx));
+		} else {
+			// putbuf ((char *) (f->R.rsi), (size_t) (f->R.rdx));
+		}
 
 		break;
 
