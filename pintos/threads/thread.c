@@ -438,7 +438,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->fd_table[1].file = NULL;
 
 	t->next_fd = 2;
-	for (int i = 2; i <= 128; i++) {
+	for (int i = 2; i < 128; i++) {
 		t->fd_table[i].type = FD_NONE;
 	}
 

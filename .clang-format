@@ -45,4 +45,8 @@ AllowShortCaseLabelsOnASingleLine: false
 BreakBeforeBinaryOperators: None
 BreakBeforeTernaryOperators: true
 MaxEmptyLinesToKeep: 1
+<<<<<<< HEAD
 KeepEmptyLinesAtTheStartOfBlocks: false
+=======
+KeepEmptyLinesAtTheStartOfBlocks: false
+>>>>>>> 824241309ab62ad4053b27140ed56d01113f5f1e

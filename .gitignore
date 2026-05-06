@@ -34,11 +34,18 @@ core
 pintos/.vscode/
 .vscode/settings.json
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 824241309ab62ad4053b27140ed56d01113f5f1e
 # Annotation (auto-generated)
 .jungle-kit/
 .gitattributes
 
 # Annotation (auto-generated)
+<<<<<<< HEAD
 .annotation/
 
+=======
+.annotation/
+>>>>>>> 824241309ab62ad4053b27140ed56d01113f5f1e

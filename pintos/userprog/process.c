@@ -49,8 +49,8 @@ process_init (void) {
 	current->fd_table[1].type = FD_STDOUT;
 	current->fd_table[1].file = NULL;
 
-	for (int i = 2; i <= 128; i++) {
-		current->fd_table->type = FD_NONE;
+	for (int i = 2; i < 128; i++) {
+		current->fd_table[i].type = FD_NONE;
 	}
 
 	current->next_fd = 2;
@@ -80,6 +80,9 @@ process_create_initd (const char *file_name) {
 
 	char *fn_copy;
 	tid_t tid;
+	char *name_copy;
+	char *token;
+	char *save_ptr;
 
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
@@ -88,11 +91,23 @@ process_create_initd (const char *file_name) {
 	fn_copy = palloc_get_page (0);
 	if (fn_copy == NULL)
 		return TID_ERROR;
+
 	strlcpy (fn_copy, file_name, PGSIZE);
+
+	/* 2. thread 이름만 뽑기 위한 별도 복사본 */
+	name_copy = palloc_get_page (0);
+	if (name_copy == NULL) {
+		palloc_free_page (fn_copy);
+		return TID_ERROR;
+	}
+	strlcpy (name_copy, file_name, PGSIZE);
+
+	token = strtok_r (name_copy, " ", &save_ptr);
 
 	/* Create a new thread to execute FILE_NAME. */
 	/* FILE_NAME을 실행하기 위해 새로운 스레드를 생성합니다. */
-	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	tid = thread_create (token, PRI_DEFAULT, initd, fn_copy);
+	//tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
 
 	// NICK- 자식이 잘 생성되었는지 확인
 	// printf("[debug] 자식 생성 TID: %d\n", tid);
@@ -516,8 +531,8 @@ load (const char *file_name, struct intr_frame *if_) {
 	// run 이후로 파싱된 file_name에서 또 파싱하여 argv 중 0번지에 있는 값으로 file을 열어야 함
 	file = filesys_open (argv[0]);
 
-	/* JANE'S CODE */
-	strlcpy (t->name, argv[0], sizeof t->name);
+	/* JANE'S CODE -> initd 할 때 파일 이름 파싱해서 넣어주니까 load 안에선 strlcpy 필요 없음 */
+	//strlcpy(t->name, argv[0], sizeof t->name);
 	/* JANE'S CODE */
 
 	if (file == NULL) {
