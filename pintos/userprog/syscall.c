@@ -6,9 +6,21 @@
 #include "threads/loader.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "threads/palloc.h"
+#include "threads/vaddr.h"
+#include "threads/mmu.h"
 #include "userprog/gdt.h"
+#include "userprog/process.h"
 #include <stdio.h>
 #include <syscall-nr.h>
+#include <string.h>
+
+// /* NICK */
+// #include "filesys/filesys.h"
+// #include "threads/synch.h"
+// #include "threads/vaddr.h"
+// #include "threads/mmu.h"
+// /* NICK */
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -61,18 +73,47 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_HALT: /* No ARG */
 		break;
 
-	case SYS_EXIT: /* void exit (int status) */
+	case SYS_EXIT:/* void exit (int status) */
 		/* KDA'S CODE - start */
 		curr->exit_code = f->R.rdi;
 		/* KDA'S CODE - end */
 
 		thread_exit ();
 		break;
+
 	case SYS_FORK: /* pid_t fork (const char *thread_name) */
 		break;
 
+	/* HOSEOK'S CODE start */
 	case SYS_EXEC: /* int exec (const char *file) */
-		break;
+		char *user_cmd = (const char *) f->R.rdi;
+
+		/* user_cmd가 NULL 인지, 실제 유저 영역인지, 유저주소가 pml4에 매핑되어있는지 */
+		if (user_cmd == NULL ||
+		    !is_user_vaddr (user_cmd) ||
+		    !pml4_get_page (thread_current ()->pml4, user_cmd)) {
+			f->R.rax = -1;
+			return;
+		}
+		/* 커널공간 활당 process exec 할때 유저 메모리 지워버려서 커널공간에 할당해줘야함 */
+		char *cmd_copy = palloc_get_page (0);
+
+		/*R.rax */
+		if (cmd_copy == NULL) {
+			palloc_free_page (cmd_copy);
+			f->R.rax = -1;
+			return;
+		}
+
+		strlcpy (cmd_copy, user_cmd, PGSIZE);
+
+		if (process_exec (cmd_copy) == -1) {
+			f->R.rax = -1;
+			thread_current ()->exit_code = -1;
+			thread_exit ();
+			break;
+		}
+	/* HOSEOK'S CODE end */
 
 	case SYS_WAIT: /* int wait (pid_t pid) */
 		break;
@@ -124,9 +165,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			curr->exit_code = -1;
 
 			thread_exit ();
-			break;
 		}
-
 		struct file *open_file = filesys_open (f->R.rdi);
 
 		if (open_file != NULL) {
@@ -144,7 +183,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	case SYS_READ: /* int read (int fd, void *buffer, unsigned size) */
 		break;
-
+	
 	case SYS_WRITE: /* int write (int fd, const void *buffer, unsigned size) */
 		/* write -SONNY- */
 		int fd = (int) (f->R.rdi);
