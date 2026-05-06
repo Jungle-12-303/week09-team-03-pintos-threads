@@ -15,7 +15,6 @@
 #include "userprog/process.h"
 #endif
 
-
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -42,13 +41,13 @@ static struct lock tid_lock;
 static struct list destruction_req;
 
 /* Statistics. */
-static long long idle_ticks;    /* # of timer ticks spent idle. */
-static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
-static long long user_ticks;    /* # of timer ticks in user programs. */
+static long long idle_ticks;   /* # of timer ticks spent idle. */
+static long long kernel_ticks; /* # of timer ticks in kernel threads. */
+static long long user_ticks;   /* # of timer ticks in user programs. */
 
 /* Scheduling. */
-#define TIME_SLICE 4            /* # of timer ticks to give each thread. */
-static unsigned thread_ticks;   /* # of timer ticks since last yield. */
+#define TIME_SLICE 4          /* # of timer ticks to give each thread. */
+static unsigned thread_ticks; /* # of timer ticks since last yield. */
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -60,7 +59,7 @@ static void kernel_thread (thread_func *, void *aux);
 static void idle (void *aux UNUSED);
 static struct thread *next_thread_to_run (void);
 static void init_thread (struct thread *, const char *name, int priority);
-static void do_schedule(int status);
+static void do_schedule (int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
 
@@ -73,7 +72,6 @@ static tid_t allocate_tid (void);
  * always at the beginning of a page and the stack pointer is
  * somewhere in the middle, this locates the curent thread. */
 #define running_thread() ((struct thread *) (pg_round_down (rrsp ())))
-
 
 // Global descriptor table for the thread_start.
 // Because the gdt will be setup after the thread_init, we should
@@ -159,7 +157,7 @@ thread_tick (void) {
 void
 thread_print_stats (void) {
 	printf ("Thread: %lld idle ticks, %lld kernel ticks, %lld user ticks\n",
-			idle_ticks, kernel_ticks, user_ticks);
+	        idle_ticks, kernel_ticks, user_ticks);
 }
 
 /* Creates a new kernel thread named NAME with the given initial
@@ -193,7 +191,7 @@ thread_print_stats (void) {
    우선순위 스케줄링은 문제 1-3의 목표이다. */
 tid_t
 thread_create (const char *name, int priority,
-		thread_func *function, void *aux) {
+               thread_func *function, void *aux) {
 	struct thread *t;
 	tid_t tid;
 
@@ -211,7 +209,7 @@ thread_create (const char *name, int priority,
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	/* 스케줄되면 kernel_thread를 호출한다.
- 	 * 참고) rdi는 첫 번째 인자이고, rsi는 두 번째 인자이다. */
+	 * 참고) rdi는 첫 번째 인자이고, rsi는 두 번째 인자이다. */
 	t->tf.rip = (uintptr_t) kernel_thread;
 	t->tf.R.rdi = (uint64_t) function;
 	t->tf.R.rsi = (uint64_t) aux;
@@ -410,11 +408,10 @@ static void
 kernel_thread (thread_func *function, void *aux) {
 	ASSERT (function != NULL);
 
-	intr_enable ();       /* The scheduler runs with interrupts off. */
-	function (aux);       /* Execute the thread function. */
-	thread_exit ();       /* If function() returns, kill the thread. */
+	intr_enable (); /* The scheduler runs with interrupts off. */
+	function (aux); /* Execute the thread function. */
+	thread_exit (); /* If function() returns, kill the thread. */
 }
-
 
 /* Does basic initialization of T as a blocked thread named
    NAME. */
@@ -430,11 +427,11 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
-	
+
 	/*---NICK---*/
 #ifdef USERPROG
-    t->fd_table = NULL;
-    t->next_fd = 2;
+	t->fd_table = NULL;
+	t->next_fd = 2;
 #endif
 	/*---NICK---*/
 }
@@ -460,29 +457,29 @@ next_thread_to_run (void) {
    인터럽트 처리 후 원래 실행하던 컨텍스트로 복귀할 때 사용 -SONNY- */
 void
 do_iret (struct intr_frame *tf) {
-	__asm __volatile(
-			"movq %0, %%rsp\n"
-			"movq 0(%%rsp),%%r15\n"
-			"movq 8(%%rsp),%%r14\n"
-			"movq 16(%%rsp),%%r13\n"
-			"movq 24(%%rsp),%%r12\n"
-			"movq 32(%%rsp),%%r11\n"
-			"movq 40(%%rsp),%%r10\n"
-			"movq 48(%%rsp),%%r9\n"
-			"movq 56(%%rsp),%%r8\n"
-			"movq 64(%%rsp),%%rsi\n"
-			"movq 72(%%rsp),%%rdi\n"
-			"movq 80(%%rsp),%%rbp\n"
-			"movq 88(%%rsp),%%rdx\n"
-			"movq 96(%%rsp),%%rcx\n"
-			"movq 104(%%rsp),%%rbx\n"
-			"movq 112(%%rsp),%%rax\n"
-			"addq $120,%%rsp\n"
-			"movw 8(%%rsp),%%ds\n"
-			"movw (%%rsp),%%es\n"
-			"addq $32, %%rsp\n"
-			"iretq"
-			: : "g" ((uint64_t) tf) : "memory");
+	__asm __volatile (
+	        "movq %0, %%rsp\n"
+	        "movq 0(%%rsp),%%r15\n"
+	        "movq 8(%%rsp),%%r14\n"
+	        "movq 16(%%rsp),%%r13\n"
+	        "movq 24(%%rsp),%%r12\n"
+	        "movq 32(%%rsp),%%r11\n"
+	        "movq 40(%%rsp),%%r10\n"
+	        "movq 48(%%rsp),%%r9\n"
+	        "movq 56(%%rsp),%%r8\n"
+	        "movq 64(%%rsp),%%rsi\n"
+	        "movq 72(%%rsp),%%rdi\n"
+	        "movq 80(%%rsp),%%rbp\n"
+	        "movq 88(%%rsp),%%rdx\n"
+	        "movq 96(%%rsp),%%rcx\n"
+	        "movq 104(%%rsp),%%rbx\n"
+	        "movq 112(%%rsp),%%rax\n"
+	        "addq $120,%%rsp\n"
+	        "movw 8(%%rsp),%%ds\n"
+	        "movw (%%rsp),%%es\n"
+	        "addq $32, %%rsp\n"
+	        "iretq"
+	        : : "g"((uint64_t) tf) : "memory");
 }
 
 /* Switching the thread by activating the new thread's page
@@ -499,7 +496,7 @@ do_iret (struct intr_frame *tf) {
 
    이 함수가 호출될 때, 우리는 방금 스레드 PREV에서 전환한 상태이며,
    새 스레드는 이미 실행 중이고, 인터럽트는 여전히 비활성화되어 있습니다.
-   
+
    스레드 전환이 완료될 때까지 printf()를 호출하는 것은 안전하지 않습니다.
    실제로 이는 printf() 호출을 함수의 마지막에 추가해야 함을 의미합니다. */
 
@@ -515,55 +512,54 @@ thread_launch (struct thread *th) {
 	 * Note that, we SHOULD NOT use any stack from here
 	 * until switching is done. */
 	/* 주요 스레드 전환 로직.
-     * 먼저 전체 실행 컨텍스트를 intr_frame에 복원하고,
-     * do_iret를 호출하여 다음 스레드로 전환합니다.
-     * 여기서부터 전환이 완료될 때까지는 어떤 스택도 사용해서는 안 됩니다. */
+	 * 먼저 전체 실행 컨텍스트를 intr_frame에 복원하고,
+	 * do_iret를 호출하여 다음 스레드로 전환합니다.
+	 * 여기서부터 전환이 완료될 때까지는 어떤 스택도 사용해서는 안 됩니다. */
 	__asm __volatile (
-			/* Store registers that will be used. */
-			"push %%rax\n"
-			"push %%rbx\n"
-			"push %%rcx\n"
-			/* Fetch input once */
-			"movq %0, %%rax\n"
-			"movq %1, %%rcx\n"
-			"movq %%r15, 0(%%rax)\n"
-			"movq %%r14, 8(%%rax)\n"
-			"movq %%r13, 16(%%rax)\n"
-			"movq %%r12, 24(%%rax)\n"
-			"movq %%r11, 32(%%rax)\n"
-			"movq %%r10, 40(%%rax)\n"
-			"movq %%r9, 48(%%rax)\n"
-			"movq %%r8, 56(%%rax)\n"
-			"movq %%rsi, 64(%%rax)\n"
-			"movq %%rdi, 72(%%rax)\n"
-			"movq %%rbp, 80(%%rax)\n"
-			"movq %%rdx, 88(%%rax)\n"
-			"pop %%rbx\n"              // Saved rcx
-			"movq %%rbx, 96(%%rax)\n"
-			"pop %%rbx\n"              // Saved rbx
-			"movq %%rbx, 104(%%rax)\n"
-			"pop %%rbx\n"              // Saved rax
-			"movq %%rbx, 112(%%rax)\n"
-			"addq $120, %%rax\n"
-			"movw %%es, (%%rax)\n"
-			"movw %%ds, 8(%%rax)\n"
-			"addq $32, %%rax\n"
-			"call __next\n"         // read the current rip.
-			"__next:\n"
-			"pop %%rbx\n"
-			"addq $(out_iret -  __next), %%rbx\n"
-			"movq %%rbx, 0(%%rax)\n" // rip
-			"movw %%cs, 8(%%rax)\n"  // cs
-			"pushfq\n"
-			"popq %%rbx\n"
-			"mov %%rbx, 16(%%rax)\n" // eflags
-			"mov %%rsp, 24(%%rax)\n" // rsp
-			"movw %%ss, 32(%%rax)\n"
-			"mov %%rcx, %%rdi\n"
-			"call do_iret\n"
-			"out_iret:\n"
-			: : "g"(tf_cur), "g" (tf) : "memory"
-			);
+	        /* Store registers that will be used. */
+	        "push %%rax\n"
+	        "push %%rbx\n"
+	        "push %%rcx\n"
+	        /* Fetch input once */
+	        "movq %0, %%rax\n"
+	        "movq %1, %%rcx\n"
+	        "movq %%r15, 0(%%rax)\n"
+	        "movq %%r14, 8(%%rax)\n"
+	        "movq %%r13, 16(%%rax)\n"
+	        "movq %%r12, 24(%%rax)\n"
+	        "movq %%r11, 32(%%rax)\n"
+	        "movq %%r10, 40(%%rax)\n"
+	        "movq %%r9, 48(%%rax)\n"
+	        "movq %%r8, 56(%%rax)\n"
+	        "movq %%rsi, 64(%%rax)\n"
+	        "movq %%rdi, 72(%%rax)\n"
+	        "movq %%rbp, 80(%%rax)\n"
+	        "movq %%rdx, 88(%%rax)\n"
+	        "pop %%rbx\n" // Saved rcx
+	        "movq %%rbx, 96(%%rax)\n"
+	        "pop %%rbx\n" // Saved rbx
+	        "movq %%rbx, 104(%%rax)\n"
+	        "pop %%rbx\n" // Saved rax
+	        "movq %%rbx, 112(%%rax)\n"
+	        "addq $120, %%rax\n"
+	        "movw %%es, (%%rax)\n"
+	        "movw %%ds, 8(%%rax)\n"
+	        "addq $32, %%rax\n"
+	        "call __next\n" // read the current rip.
+	        "__next:\n"
+	        "pop %%rbx\n"
+	        "addq $(out_iret -  __next), %%rbx\n"
+	        "movq %%rbx, 0(%%rax)\n" // rip
+	        "movw %%cs, 8(%%rax)\n"  // cs
+	        "pushfq\n"
+	        "popq %%rbx\n"
+	        "mov %%rbx, 16(%%rax)\n" // eflags
+	        "mov %%rsp, 24(%%rax)\n" // rsp
+	        "movw %%ss, 32(%%rax)\n"
+	        "mov %%rcx, %%rdi\n"
+	        "call do_iret\n"
+	        "out_iret:\n"
+	        : : "g"(tf_cur), "g"(tf) : "memory");
 }
 
 /* Schedules a new process. At entry, interrupts must be off.
@@ -575,13 +571,13 @@ thread_launch (struct thread *th) {
  * 실행할 다른 스레드를 찾아 그 스레드로 전환한다.
  * schedule() 안에서 printf()를 호출하는 것은 안전하지 않다. */
 static void
-do_schedule(int status) {
+do_schedule (int status) {
 	ASSERT (intr_get_level () == INTR_OFF);
-	ASSERT (thread_current()->status == THREAD_RUNNING);
+	ASSERT (thread_current ()->status == THREAD_RUNNING);
 	while (!list_empty (&destruction_req)) {
 		struct thread *victim =
-			list_entry (list_pop_front (&destruction_req), struct thread, elem);
-		palloc_free_page(victim);
+		        list_entry (list_pop_front (&destruction_req), struct thread, elem);
+		palloc_free_page (victim);
 	}
 	thread_current ()->status = status;
 	schedule ();
@@ -615,7 +611,7 @@ schedule (void) {
 		   The real destruction logic will be called at the beginning of the
 		   schedule(). */
 		/* 전환되어 나온 이전 스레드가 종료 중이라면, 그 스레드의 struct thread를
-   		   파괴한다. thread_exit()이 자기 자신이 밟고 있는 발판을 빼버리는 일이
+		   파괴한다. thread_exit()이 자기 자신이 밟고 있는 발판을 빼버리는 일이
 		   없도록 이 작업은 늦게 수행되어야 한다.
 		 * 현재 페이지가 스택으로 사용되고 있기 때문에 여기서는 페이지 해제 요청만
 		   큐에 넣는다.
