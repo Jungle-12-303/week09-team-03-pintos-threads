@@ -127,11 +127,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	case SYS_OPEN: /* int open (const char *file) */
 		/* SONNY'S CODE */
-		// struct file *open_file = filesys_open(f->R.rdi);
-		// if (open_file != NULL) {
-		// 	curr->fd_table[curr->next_fd].file = open_file;
-		// 	curr->next_fd++;
-		// }
+		struct file *open_file = filesys_open (f->R.rdi);
+		if (open_file != NULL) {
+			curr->fd_table[curr->next_fd].file = open_file;
+			curr->next_fd++;
+		}
 		break;
 
 	case SYS_FILESIZE: /* int filesize (int fd) */
@@ -142,19 +142,19 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	case SYS_WRITE: /* int write (int fd, const void *buffer, unsigned size) */
 		/* write -SONNY- */
-		// int fd = (int)(f->R.rdi);
-		// void *buffer = (void *)(f->R.rsi);
-		// unsigned size = (unsigned)(f->R.rdx);
+		// int fd = (int) (f->R.rdi);
+		// void *buffer = (void *) (f->R.rsi);
+		// unsigned size = (unsigned) (f->R.rdx);
 
 		putbuf ((char *) (f->R.rsi), (size_t) (f->R.rdx));
 
 		// if (fd = 0) {
 
 		// } else if (fd = 1) {
-		// 	putbuf((char *)(f->R.rsi), (size_t)(f->R.rdx));
+		// 	putbuf((char *) (f->R.rsi), (size_t) (f->R.rdx));
 		// }
 		// else {
-		// 	write(fd, buffer, size);
+		// 	write (fd, buffer, size);
 		// }
 
 		break;

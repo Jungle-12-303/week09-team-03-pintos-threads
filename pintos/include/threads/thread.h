@@ -114,7 +114,7 @@ struct thread {
 
 /*---NICk---*/
 #ifdef USERPROG
-	struct fd_entry *fd_table;
+	struct fd_entry fd_table[128];
 	int next_fd;
 #endif
 	/*---NICk---*/
