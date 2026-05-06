@@ -165,6 +165,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			curr->exit_code = -1;
 
 			thread_exit ();
+			break;
 		}
 		struct file *open_file = filesys_open (f->R.rdi);
 
