@@ -85,6 +85,25 @@ typedef int tid_t;
  * only because they are mutually exclusive: only a thread in the
  * ready state is on the run queue, whereas only a thread in the
  * blocked state is on a semaphore wait list. */
+
+/*---NICk---*/
+#ifdef USERPROG
+struct file;
+#define FDCOUNT_LIMIT 128
+	enum fd_type
+	{
+		FD_NONE,
+		FD_STDIN,
+		FD_STDOUT,
+		FD_FILE
+	};
+	struct fd_entry
+	{
+		enum fd_type type;
+		struct file *file;
+	};
+#endif
+
 struct thread {
 	/* Owned by thread.c. */
 	tid_t tid;                          /* Thread identifier. */
@@ -95,6 +114,13 @@ struct thread {
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
+
+/*---NICk---*/
+#ifdef USERPROG
+    struct fd_entry *fd_table;
+    int next_fd;
+#endif
+/*---NICk---*/
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
