@@ -54,11 +54,23 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	// printf ("system call!\n");
 
 	/* SONNY'S CODE */
+
+	struct thread *curr = thread_current();
+
 	switch ((int)(f->R.rax))
 	{
+	case SYS_EXIT:
+		/* KDA'S CODE - start */		
+		curr->exit_code = f->R.rdi;
+		/* KDA'S CODE - end */
+		thread_exit ();
+		break;
+
+	case SYS_CREATE:
+		break;
+
 	
 	case SYS_WRITE: /* write -SONNY- */
 		int fd = (int)(f->R.rdi);
@@ -68,26 +80,22 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		if (fd = 0) {
 
 		}
-		else if (fd = 1){
-			
+		else if (fd = 1) {
+			putbuf ((char*)(f->R.rsi), (size_t)(f->R.rdx));
 		}
-		else {
-			
-		}
+		// else {
+		// 	write(fd, buffer, size);
+		// }
 		
-
-		// putbuf ((char*)(f->R.rsi), (size_t)(f->R.rdx));
 		break;
 
-	case SYS_EXIT:
-	/* KDA'S CODE - start */
-		struct thread *curr = thread_current();
-		
-		curr->exit_code = f->R.rdi;
-		/* KDA'S CODE - end */
-		thread_exit ();
+	case SYS_OPEN: /* SONNY'S CODE */
+		struct file* open_file = filesys_open(f->R.rdi);
+		if (open_file != NULL) {
+			curr->fd_table[curr->next_fd].file = open_file;
+			curr->next_fd++;
+		}
 		break;
-	
 	default:
 		break;
 	}

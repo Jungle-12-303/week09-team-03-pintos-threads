@@ -112,8 +112,19 @@ struct thread {
 	uint64_t exit_code; 
 	/* KDA'S CODE - end */
 
+	struct fd_table* fd_table;
+
+	/* 다음 FILENO -SONNY- */
+	int next_fd;
+
 	unsigned magic;                     /* Detects stack overflow. */
 };
+
+struct fd_table {
+	int type;
+	struct file* file;
+};
+
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.

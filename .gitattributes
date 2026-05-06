@@ -1,5 +1,4 @@
 * text=auto eol=lf
-
 *.sh text eol=lf
 Makefile text eol=lf
 *.mk text eol=lf
@@ -8,5 +7,5 @@ Makefile text eol=lf
 *.S text eol=lf
 *.s text eol=lf
 *.py text eol=lf
-*.c filter=jungle-local
-*.h filter=jungle-local
+*.c filter=annotation-local
+*.h filter=annotation-local

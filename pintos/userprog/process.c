@@ -43,10 +43,11 @@ process_init (void) {
 		if(current -> fd_table == NULL)
 			thread_exit();	
 		
-		current->fd_table[0].type = FD_STDIN;
+		/* FD_STDIN/OUT에서 수정. stdio.h에 STDIN/OUT_FILENO로 사용중 -SONNY- */
+		current->fd_table[0].type = STDIN_FILENO;
 		current->fd_table[0].file = NULL;
 
-		current->fd_table[1].type = FD_STDOUT;
+		current->fd_table[1].type = STDOUT_FILENO;
 		current->fd_table[1].file = NULL;
 
 		current -> next_fd = 2;
