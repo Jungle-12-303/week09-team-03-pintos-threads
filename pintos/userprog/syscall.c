@@ -1,12 +1,14 @@
 #include "userprog/syscall.h"
+#include "filesys/filesys.h"
+#include "intrinsic.h"
+#include "threads/flags.h"
+#include "threads/interrupt.h"
+#include "threads/loader.h"
+#include "threads/synch.h"
+#include "threads/thread.h"
+#include "userprog/gdt.h"
 #include <stdio.h>
 #include <syscall-nr.h>
-#include "threads/interrupt.h"
-#include "threads/thread.h"
-#include "threads/loader.h"
-#include "userprog/gdt.h"
-#include "threads/flags.h"
-#include "intrinsic.h"
 
 /* NICK */
 #include "filesys/filesys.h"
@@ -18,6 +20,10 @@
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
+/* KDA'S CODE */
+static struct lock lock;
+/* KDA'S CODE */
+
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -27,164 +33,165 @@ void syscall_handler (struct intr_frame *);
  * The syscall instruction works by reading the values from the the Model
  * Specific Register (MSR). For the details, see the manual. */
 
-#define MSR_STAR 0xc0000081         /* Segment selector msr */
-#define MSR_LSTAR 0xc0000082        /* Long mode SYSCALL target */
+#define MSR_STAR         0xc0000081 /* Segment selector msr */
+#define MSR_LSTAR        0xc0000082 /* Long mode SYSCALL target */
 #define MSR_SYSCALL_MASK 0xc0000084 /* Mask for the eflags */
 
-	/* NICK */
+/* 구현 예정 목록
+    fd_table_init
+    file open 수정
+    file close 수정
+    free_fd_table
+    alloc_fd_table
+*/
 
-static struct lock filesys_lock;
-	/* NICK */
+/* SONNY'S CODE */
 
 void
 syscall_init (void) {
-	write_msr(MSR_STAR, ((uint64_t)SEL_UCSEG - 0x10) << 48  |
-			((uint64_t)SEL_KCSEG) << 32);
-	write_msr(MSR_LSTAR, (uint64_t) syscall_entry);
+	write_msr (MSR_STAR, ((uint64_t) SEL_UCSEG - 0x10) << 48 |
+	                             ((uint64_t) SEL_KCSEG) << 32);
+	write_msr (MSR_LSTAR, (uint64_t) syscall_entry);
 
 	/* The interrupt service rountine should not serve any interrupts
 	 * until the syscall_entry swaps the userland stack to the kernel
 	 * mode stack. Therefore, we masked the FLAG_FL. */
-	write_msr(MSR_SYSCALL_MASK,
-			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
-	
-	/* NICK */
-	lock_init(&filesys_lock);
-	/* NICK */
+	write_msr (MSR_SYSCALL_MASK,
+	           FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
 
-}
-
-static void
-sys_exit (int status) {
-	struct thread *curr = thread_current ();
-	curr->exit_code = status;
-	thread_exit ();
-}
-
-static void 
-validate_user_addr (const void *uaddr) {
-	struct thread *curr = thread_current ();
-
-	if (uaddr == NULL ||
-		!is_user_vaddr (uaddr) ||
-		curr->pml4 == NULL ||
-		pml4_get_page (curr->pml4, uaddr) == NULL) {
-		sys_exit (-1);
-	}
-}
-
-static void //1.유저가 넘긴 문자열이 유효한지 검증하는 함수
-validate_user_string(const char *str)
-{
-	while(true)
-	{
-		validate_user_addr(str);
-
-		if(*str ==  '\0') return;
-		str++; 
-	}
-} 
-
-
-static void //2. 버퍼가 유저 영역에 있는지 검증하는 함수
-validate_user_buffer(const void *buffer, size_t size)
-{
-	const uint8_t *buf = buffer; 
-
-	for(size_t i = 0; i < size; i++)
-	{
-		validate_user_addr(buf + i); //
-	}
+	/* KDA'S CODE - start */
+	lock_init (&lock);
+	/* KDA'S CODE - end */
 }
 
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	// printf ("system call!\n");
+
+	/* KDA'S CODE - start*/
+	struct thread *curr = thread_current ();
+	/* KDA'S CODE - end */
 
 	/* SONNY'S CODE */
-	switch ((int)(f->R.rax)) //이곳에 write, exit, create , open ..
-	{
-	/* NICK */
-	case SYS_WRITE:
-	{
-		int fd = (int) f -> R.rdi; 
-		const char *buffer = (const char *)f -> R.rsi;
-		size_t size = (size_t)f -> R.rdx;
+	switch ((int) (f->R.rax)) {
+	case SYS_HALT: /* No ARG */
+		break;
 
-		validate_user_buffer(buffer, size);
-
-		if(fd == 1)
-		{
-			putbuf(buffer, size);
-			f -> R.rax = size;
-		}
-		else
-		{
-			f -> R.rax = -1; 
-		}
-		return; 
-	}
-
-	case SYS_CREATE: 
-	{
-		// syscall2에서 커널이 아래처럼 정보를 가져옴
-		const char *file = (const char * ) f -> R.rdi; 
-		unsigned initial_size = (unsigned) f -> R.rsi;
-
-		struct thread *curr = thread_current();
-		validate_user_addr(file); 
-
-		
-/* 이제 null검사는 is_user_vaddr에서 하니까 필요없음		
-		if(file == NULL) //create(NULL , 0); 
-		{
-			curr -> exit_code = -1; //현재 프로세스를 죽여
-			thread_exit();
-		//유효하지 않은 메모리 주소를 넘김 -> 프로그램 에러
-
-		}
-*/		
-
-		if(file[0] == '\0') //create("", 0); 
-		{
-			f -> R.rax = false;
-			return;
-		//정상적인 주소를 줬지만, 내용이 비어있어 파일 생성 실패(false) 반환
-		
-		}
-		
-		//유저가 넘긴 주소 검증한다. 
-		if(!is_user_vaddr(file))
-		{
-			curr -> exit_code = -1;
-			thread_exit();
-		}
-		
-		//lock 사용: 
-		lock_acquire(&filesys_lock);
-		bool ok = filesys_create(file, initial_size);
-		lock_release(&filesys_lock);
-		
-		f-> R.rax = ok;
-		return; 
-
-	/* NICK */
-	}
-
-	case SYS_EXIT:
-	/* KDA'S CODE - start */
-		struct thread *curr = thread_current();
-		
+	case SYS_EXIT: /* void exit (int status) */
+		/* KDA'S CODE - start */
 		curr->exit_code = f->R.rdi;
 		/* KDA'S CODE - end */
+
 		thread_exit ();
 		break;
-	
+	case SYS_FORK: /* pid_t fork (const char *thread_name) */
+		break;
+
+	case SYS_EXEC: /* int exec (const char *file) */
+		break;
+
+	case SYS_WAIT: /* int wait (pid_t pid) */
+		break;
+
+	/* KDA'S CODE - start */
+	case SYS_CREATE: /* bool create (const char *file, unsigned initial_size) */
+		/* create는 성공/실패만 반환하면 됨 */
+
+		/* bool create (const char *file, unsigned initial_size); */
+		/* file = rdi, initial_size = rsi */
+		/* rax = syscall 번호  */
+		char *file = (char *) f->R.rdi;
+		unsigned initial_size = (unsigned) f->R.rsi;
+
+		/* 첫번째 인자값이 NULL일 때 종료 상태 코드 -1 반환 */
+		/* PTE_ADDR(PTE): 페이지 테이블 엔트리(PTE) 값에서 "주소 부분만" 뽑아내는 매크로 -> 사용 X */
+		/* pml4_get_page: 매핑된 커널 가상 주소 또는 NULL 반환 */
+		/* todo: 현재는 문자열 전체가 아니라 시작 주소 한 점만 검증하는 로직, 추후 수정하면 좋을 듯 */
+		if (file == NULL || file >= KERN_BASE || pml4_get_page (curr->pml4, (const void *) file) == NULL) {
+			/* 종료 메세지 출력을 위해 exit_code -1로 설정 */
+			curr->exit_code = -1;
+
+			thread_exit ();
+		} else {
+			/* filesys_create 등 파일 시스템 관련 함수 호출 전 파일 시스템에 락을 걸어야 함 */
+			/* Why?:
+			/* 1. Pintos에서 제공하는 파일 시스템 코드엔 내부 동기화 기능이 구현되어 있지 않음 */
+			/* 2. 여러 User Process가 동시에 시스템 콜을 호출하며는 것은 안전하지 않고, 서로 간섭을 일으키게 됨 */
+			lock_acquire (&lock);
+
+			f->R.rax = filesys_create (file, initial_size);
+
+			/* 반환값을 rax로 넘기고 락 해제 */
+			lock_release (&lock);
+		}
+
+		break;
+		/* KDA'S CODE - end */
+
+	case SYS_REMOVE: /* bool remove (const char *file) */
+		break;
+
+	case SYS_OPEN: /* int open (const char *file) */
+		/* SONNY'S CODE */
+
+		/* open-null/bad-ptr 관련 -SONNY- */
+		if ((f->R.rdi) == NULL || (f->R.rdi) >= KERN_BASE || pml4_get_page (curr->pml4, (const void *) (f->R.rdi)) == NULL) {
+			/* 종료 메세지 출력을 위해 exit_code -1로 설정 */
+			curr->exit_code = -1;
+
+			thread_exit ();
+			break;
+		}
+
+		struct file *open_file = filesys_open (f->R.rdi);
+
+		if (open_file != NULL) {
+			curr->fd_table[curr->next_fd].file = open_file;
+			curr->next_fd++;
+			f->R.rax = (uint64_t) (curr->next_fd - 1);
+
+		} else {
+			f->R.rax = (uint64_t) (-1);
+		}
+		break;
+
+	case SYS_FILESIZE: /* int filesize (int fd) */
+		break;
+
+	case SYS_READ: /* int read (int fd, void *buffer, unsigned size) */
+		break;
+
+	case SYS_WRITE: /* int write (int fd, const void *buffer, unsigned size) */
+		/* write -SONNY- */
+		int fd = (int) (f->R.rdi);
+		void *buffer = (void *) (f->R.rsi);
+		unsigned size = (unsigned) (f->R.rdx);
+
+		// if (curr->fd_table[fd].file == NULL) {
+		// 	break;
+		// }
+
+		if (fd == 0) {
+		} else if (fd == 1) {
+			putbuf ((char *) (f->R.rsi), (size_t) (f->R.rdx));
+		} else {
+			// putbuf ((char *) (f->R.rsi), (size_t) (f->R.rdx));
+		}
+
+		break;
+
+	case SYS_SEEK: /* void seek (int fd, unsigned position) */
+		break;
+
+	case SYS_TELL: /* unsigned tell (int fd)  */
+		break;
+
+	case SYS_CLOSE: /* void close (int fd) */
+		break;
+
 	default:
 		break;
 	}
 	/* SONNY'S CODE */
-
 }
