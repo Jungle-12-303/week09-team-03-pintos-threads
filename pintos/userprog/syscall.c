@@ -68,16 +68,27 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	/* SONNY'S CODE */
 	switch ((int) (f->R.rax)) {
-	case SYS_EXIT:
+	case SYS_HALT: /* No ARG */
+		break;
+
+	case SYS_EXIT: /* void exit (int status) */
 		/* KDA'S CODE - start */
 		curr->exit_code = f->R.rdi;
 		/* KDA'S CODE - end */
 
 		thread_exit ();
 		break;
+	case SYS_FORK: /* pid_t fork (const char *thread_name) */
+		break;
+
+	case SYS_EXEC: /* int exec (const char *file) */
+		break;
+
+	case SYS_WAIT: /* int wait (pid_t pid) */
+		break;
 
 	/* KDA'S CODE - start */
-	case SYS_CREATE:
+	case SYS_CREATE: /* bool create (const char *file, unsigned initial_size) */
 		/* create는 성공/실패만 반환하면 됨 */
 
 		/* bool create (const char *file, unsigned initial_size); */
@@ -111,7 +122,26 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 		/* KDA'S CODE - end */
 
-	case SYS_WRITE: /* write -SONNY- */
+	case SYS_REMOVE: /* bool remove (const char *file) */
+		break;
+
+	case SYS_OPEN: /* int open (const char *file) */
+		/* SONNY'S CODE */
+		// struct file *open_file = filesys_open(f->R.rdi);
+		// if (open_file != NULL) {
+		// 	curr->fd_table[curr->next_fd].file = open_file;
+		// 	curr->next_fd++;
+		// }
+		break;
+
+	case SYS_FILESIZE: /* int filesize (int fd) */
+		break;
+
+	case SYS_READ: /* int read (int fd, void *buffer, unsigned size) */
+		break;
+
+	case SYS_WRITE: /* int write (int fd, const void *buffer, unsigned size) */
+		/* write -SONNY- */
 		// int fd = (int)(f->R.rdi);
 		// void *buffer = (void *)(f->R.rsi);
 		// unsigned size = (unsigned)(f->R.rdx);
@@ -129,13 +159,15 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 		break;
 
-	case SYS_OPEN: /* SONNY'S CODE */
-		// struct file *open_file = filesys_open(f->R.rdi);
-		// if (open_file != NULL) {
-		// 	curr->fd_table[curr->next_fd].file = open_file;
-		// 	curr->next_fd++;
-		// }
+	case SYS_SEEK: /* void seek (int fd, unsigned position) */
 		break;
+
+	case SYS_TELL: /* unsigned tell (int fd)  */
+		break;
+
+	case SYS_CLOSE: /* void close (int fd) */
+		break;
+
 	default:
 		break;
 	}
