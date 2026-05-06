@@ -3,13 +3,40 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/pintos",
+                "${workspaceFolder}/pintos/include",
+                "${workspaceFolder}/pintos/include/lib",
+                "${workspaceFolder}/pintos/include/lib/kernel",
+                "${workspaceFolder}/pintos/include/lib/user",
+                "${workspaceFolder}/pintos/include/threads",
+                "${workspaceFolder}/pintos/include/devices",
+                "${workspaceFolder}/pintos/include/filesys",
+                "${workspaceFolder}/pintos/include/userprog",
+                "${workspaceFolder}/pintos/include/vm",
+                "${workspaceFolder}/pintos/lib",
+                "${workspaceFolder}/pintos/lib/kernel",
+                "${workspaceFolder}/pintos/lib/user",
+                "${workspaceFolder}/pintos/threads",
+                "${workspaceFolder}/pintos/devices",
+                "${workspaceFolder}/pintos/filesys",
+                "${workspaceFolder}/pintos/userprog",
+                "${workspaceFolder}/pintos/vm",
+                "${workspaceFolder}/pintos/tests"
             ],
-            "defines": [],
+            "defines": [
+                "USERPROG",
+                "FILESYS"
+            ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
-            "intelliSenseMode": "linux-gcc-x64"
+            "intelliSenseMode": "linux-gcc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/pintos"
+                ],
+                "limitSymbolsToIncludedHeaders": false
+            }
         }
     ],
     "version": 4

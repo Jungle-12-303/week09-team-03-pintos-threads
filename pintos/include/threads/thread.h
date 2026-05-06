@@ -1,32 +1,31 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
 
+#include "threads/interrupt.h"
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include "threads/interrupt.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
 
-
 /* States in a thread's life cycle. */
 enum thread_status {
-	THREAD_RUNNING,     /* Running thread. */
-	THREAD_READY,       /* Not running but ready to run. */
-	THREAD_BLOCKED,     /* Waiting for an event to trigger. */
-	THREAD_DYING        /* About to be destroyed. */
+	THREAD_RUNNING, /* Running thread. */
+	THREAD_READY,   /* Not running but ready to run. */
+	THREAD_BLOCKED, /* Waiting for an event to trigger. */
+	THREAD_DYING    /* About to be destroyed. */
 };
 
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
-#define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
+#define TID_ERROR ((tid_t) - 1) /* Error value for tid_t. */
 
 /* Thread priorities. */
-#define PRI_MIN 0                       /* Lowest priority. */
-#define PRI_DEFAULT 31                  /* Default priority. */
-#define PRI_MAX 63                      /* Highest priority. */
+#define PRI_MIN     0  /* Lowest priority. */
+#define PRI_DEFAULT 31 /* Default priority. */
+#define PRI_MAX     63 /* Highest priority. */
 
 /* A kernel thread or user process.
  *
@@ -90,42 +89,40 @@ typedef int tid_t;
 #ifdef USERPROG
 struct file;
 #define FDCOUNT_LIMIT 128
-	enum fd_type
-	{
-		FD_NONE,
-		FD_STDIN,
-		FD_STDOUT,
-		FD_FILE
-	};
-	struct fd_entry
-	{
-		enum fd_type type;
-		struct file *file;
-	};
+enum fd_type {
+	FD_NONE,
+	FD_STDIN,
+	FD_STDOUT,
+	FD_FILE
+};
+struct fd_entry {
+	enum fd_type type;
+	struct file *file;
+};
 #endif
 
 struct thread {
 	/* Owned by thread.c. */
-	tid_t tid;                          /* Thread identifier. */
+	tid_t tid; /* Thread identifier. */
 
-	enum thread_status status;          /* Thread state. */
-	char name[16];                      /* Name (for debugging purposes). */
-	int priority;                       /* Priority. */
+	enum thread_status status; /* Thread state. */
+	char name[16];             /* Name (for debugging purposes). */
+	int priority;              /* Priority. */
 
 	/* Shared between thread.c and synch.c. */
-	struct list_elem elem;              /* List element. */
+	struct list_elem elem; /* List element. */
 
 /*---NICk---*/
 #ifdef USERPROG
-    struct fd_entry *fd_table;
-    int next_fd;
+	struct fd_entry *fd_table;
+	int next_fd;
 #endif
-/*---NICk---*/
+	/*---NICk---*/
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	/* userprog/process.c에서 관리한다. */
-	uint64_t *pml4;                     /* Page map level 4 */
+	uint64_t *pml4; /* Page map level 4 */
 #endif
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
@@ -133,24 +130,13 @@ struct thread {
 #endif
 
 	/* Owned by thread.c. */
-	struct intr_frame tf;               /* Information for switching */
+	struct intr_frame tf; /* Information for switching */
 	/* KDA'S CODE - start */
-	uint64_t exit_code; 
+	uint64_t exit_code;
 	/* KDA'S CODE - end */
 
-	struct fd_table* fd_table;
-
-	/* 다음 FILENO -SONNY- */
-	int next_fd;
-
-	unsigned magic;                     /* Detects stack overflow. */
+	unsigned magic; /* Detects stack overflow. */
 };
-
-struct fd_table {
-	int type;
-	struct file* file;
-};
-
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
