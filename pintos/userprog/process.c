@@ -61,11 +61,6 @@ process_init (void) {
  * process_create_initd()가 반환되기 전에 새 스레드가 스케줄링되거나(심지어 종료될 수도 있음)
  * initd의 스레드 ID를 반환하며, 스레드를 생성할 수 없는 경우 TID_ERROR를 반환합니다.
  * 이 함수는 한 번만 호출되어야 합니다. */
-
-/* KDA'S CODE - start */
-tid_t init_tid = 0;
-/* KDA'S CODE - end */
-
 tid_t
 process_create_initd (const char *file_name) {
 	//
@@ -109,9 +104,6 @@ process_create_initd (const char *file_name) {
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 
-	/* KDA'S CODE - start */
-	init_tid = tid;
-	/* KDA'S CODE - end */
 	return tid;
 }
 
@@ -159,21 +151,30 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	bool writable;
 
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
+	/* 1. TODO: parent_page가 커널 페이지인 경우 즉시 반환합니다. */
 
 	/* 2. Resolve VA from the parent's page map level 4. */
+	/* 2. 부모 페이지의 맵 레벨 4에서 VA를 확인합니다. */
 	parent_page = pml4_get_page (parent->pml4, va);
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
-
+	/* 3. TODO: 자식 프로세스를 위해 새로운 PAL_USER 페이지를 할당하고 result를 다음과 같이 설정합니다.
+     *    TODO: NEWPAGE. */
+	
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
 	 *    TODO: according to the result). */
+	/* 4. TODO: 상위 페이지를 새 페이지로 복사하고;
+     *    TODO: 상위 페이지의 쓰기 권한 여부를 확인합니다(결과에 따라 WRITABLE을 설정;
+     *    TODO:). */
 
 	/* 5. Add new page to child's page table at address VA with WRITABLE
 	 *    permission. */
+	/* 5. 주소 VA에 WRITABLE 권한으로 자식 페이지 테이블에 새 페이지를 추가합니다. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
 		/* 6. TODO: if fail to insert page, do error handling. */
+		/* 6. TODO: 페이지 삽입에 실패할 경우 오류 처리를 수행합니다. */
 	}
 	return true;
 }

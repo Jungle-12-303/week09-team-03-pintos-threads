@@ -112,17 +112,19 @@ struct thread {
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem; /* List element. */
 
-/*---NICk---*/
-#ifdef USERPROG
-	struct fd_entry fd_table[128];
-	int next_fd;
-#endif
-	/*---NICk---*/
-
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	/* userprog/process.c에서 관리한다. */
 	uint64_t *pml4; /* Page map level 4 */
+
+	/*---NICk---*/
+	struct fd_entry fd_table[128];
+	int next_fd;
+	/*---NICk---*/
+
+	/* KDA'S CODE */
+	//tidt_t child
+	/* KDA'S CODE */
 #endif
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
