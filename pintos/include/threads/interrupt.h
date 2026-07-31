@@ -17,21 +17,21 @@ enum intr_level intr_disable (void);
 
 /* Interrupt stack frame. */
 struct gp_registers {
-	uint64_t r15;	/* 일반 목적 레지스터, 함수 호출 후에도 보존되는 -SONNY- */
-	uint64_t r14;	/* 일반 목적 레지스터, 함수 호출 후에도 보존되는 -SONNY- */
-	uint64_t r13;	/* 일반 목적 레지스터, 함수 호출 후에도 보존되는 -SONNY- */
-	uint64_t r12;	/* 일반 목적 레지스터, 함수 호출 후에도 보존되는 -SONNY- */
-	uint64_t r11;	/* syscall 때 플래그 저장에 사용됨 -SONNY- */
-	uint64_t r10;	/* 시스템 콜의 4번째 인자 -SONNY- */
-	uint64_t r9;	/* 함수/시스템 콜의 6번째 인자 -SONNY- */
-	uint64_t r8;	/* 함수/시스템 콜의 5번째 인자 -SONNY- */
-	uint64_t rsi;	/* 함수/시스템 콜의 2번째 인자 -SONNY- */
-	uint64_t rdi;	/* 함수/시스템 콜의 1번째 인자 -SONNY- */
-	uint64_t rbp;	/* 스택 프레임 기준 포인터 -SONNY- */
-	uint64_t rdx;	/* 일반 목적 레지스터, 함수/시스템 콜의 3번째 인자 -SONNY- */
-	uint64_t rcx;	/* 일반 목적 레지스터, syscall 복귀 주소와도 연관 있음 -SONNY- */
-	uint64_t rbx;	/* 일반 목적 레지스터, 함수 호출 후에도 보존되는 편? -SONNY- */
-	uint64_t rax;	/* 반환값, 시스템 콜 번호 저장 -SONNY- */
+	uint64_t r15;
+	uint64_t r14;
+	uint64_t r13;
+	uint64_t r12;
+	uint64_t r11;
+	uint64_t r10;
+	uint64_t r9;
+	uint64_t r8;
+	uint64_t rsi;
+	uint64_t rdi;
+	uint64_t rbp;
+	uint64_t rdx;
+	uint64_t rcx;
+	uint64_t rbx;
+	uint64_t rax;
 } __attribute__((packed));
 
 struct intr_frame {
